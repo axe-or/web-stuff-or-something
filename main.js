@@ -28,7 +28,7 @@ function contains(arr, key){
 /* Create an enum, because JS doesn't have them for whatever reason */
 function Enum(values){
 	if(typeof values !== 'object'){
-		throw new Error(`Enums must be objects. Got "${typeof values}"`);
+		throw new TypeError(`Enums must be objects. Got "${typeof values}"`);
 	}
 	const obj = structuredClone(values);
 	Object.freeze(obj);
