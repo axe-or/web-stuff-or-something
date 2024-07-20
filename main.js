@@ -25,9 +25,29 @@ function contains(arr, key){
 	return false;
 }
 
+/* Create an enum, because JS doesn't have them for whatever reason */
+function Enum(values){
+	if(typeof values !== 'object'){
+		throw new Error(`Enums must be objects. Got "${typeof values}"`);
+	}
+	const obj = structuredClone(values);
+	Object.freeze(obj);
+	return new Proxy(obj, {
+		set(target, prop, value){
+			throw new TypeError("Enum is not mutable.");
+		},
+		get(target, prop){
+			if(target[prop] === undefined){
+				throw new TypeError(`Enum does not have value: ${prop}`);
+			}
+			return target[prop];
+		}
+	})
+}
+
 /* Token type enum, tokens which can be uniquely identified by their lexeme
  * have it as their value, otherwhise, a unique integer is used */
-const TokenKind = {
+const TokenKind = Enum({
 	Unknown: null,
 
 	Paren_Open: '(',
@@ -80,21 +100,7 @@ const TokenKind = {
 	Real_Lit: 4,
 
 	End_Of_File: -1,
-
-	get(_, name){
-		if(_TokenKind[name] === undefined){
-			throw new LexerError(`No such keyword: "${name}"`);
-		}
-		return _TokenKind[name];
-	},
-
-	keyword(lexeme){
-		const first = lexeme.substring(0, 1).toUpperCase();
-		const rest = lexeme.substring(1);
-		return TokenKind[first+rest] ?? null;
-	},
-}
-
+});
 
 /* Token class, the `payload` field may be used to contain the real values of
  * evaluated literals. */
@@ -130,6 +136,8 @@ class Lexer {
 	source = "";
 	current = 0;
 	previous = 0;
+
+	static keywords = ['not', 'and', 'or', 'let', 'if', 'else', 'for', 'match', 'fn', 'in' ];
 
 	atEnd(){
 		return this.current >= source.length;
@@ -182,7 +190,7 @@ class Lexer {
 		let lexeme = this.currentLexeme();
 		let token = new Token(TokenKind.Identifier, lexeme);
 
-		if(TokenKind.keyword(lexeme)){
+		if(Lexer.isKeyword(lexeme)){
 			token.kind = lexeme;
 		}
 
@@ -191,6 +199,10 @@ class Lexer {
 
 	currentLexeme(){
 		return this.source.substring(this.previous, this.current);
+	}
+
+	static isKeyword(s){
+		return Lexer.keywords.some((kw) => kw === s);
 	}
 
 	static isStartOfIdentifier(s){
