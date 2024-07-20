@@ -33,10 +33,5 @@ function test(name, body){
 	return t.report();
 }
 
-
-test("Lexer", (T) => { });
-
-test("Parser", (T) => { });
-
-test("Type checker", (T) => { });
-
+// Vim Minify
+'%s/\s*?\s*/\?/g | %s/\s*=\s*/=/g | %s/\s*+\s*/+/g | %s/\s*{\s*/{/g | %s/\s*:\s*/:/g | %s/\s*,\s*/,/g | %s/^\s\+//g | g/^\s*$/d | %s/\n//g | %s/const/let/g'
