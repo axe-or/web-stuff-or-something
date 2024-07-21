@@ -10,8 +10,8 @@ class Test {
 		console.log('>', ...x);
 	}
 
-	table(...x){
-		console.table(...x);
+	table(x){
+		console.table(x);
 	}
 
 	constructor(name, body){
@@ -59,4 +59,3 @@ function test(name, body){
 	| g/^\s*$/d
 	| %s/\n//g
 `
-

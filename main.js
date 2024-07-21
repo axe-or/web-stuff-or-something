@@ -1,7 +1,7 @@
 'use strict';
 
 /* Import test.js */
-class Test{n='';f=0;t=0;b=null;log(...x){console.log('>',...x);}table(...x){console.table(...x);}constructor(n,b){this.n=n;this.b=b;}expect(p){if(!p){this.f+=1;}this.t+=1;}report(){const ok=this.f===0;const msg=`[${this.n}] `+(ok?'PASS':'FAIL')+` ok in ${this.t - this.f}/${this.t}`;console.log(msg);}}function test(n,b){let t=new Test(n,b);t.b(t);return t.report();}
+class Test{n='';f=0;t=0;b=null;log(...x){console.log('>',...x);}table(x){console.table(x);}constructor(n,b){this.n=n;this.b=b;}expect(p){if(!p){this.f+=1;}this.t+=1;}report(){const ok=this.f===0;const msg=`[${this.n}] `+(ok?'PASS':'FAIL')+` ok in ${this.t - this.f}/${this.t}`;console.log(msg);}}function test(n,b){let t=new Test(n,b);t.b(t);return t.report();}
 /*------------*/
 
 /* Assert a predicate, emit error if false */
@@ -107,6 +107,7 @@ const TokenKind = Enum({
 class Token {
 	kind = TokenKind.Unknown;
 	lexeme = null;
+	payload = null;
 
 	constructor(kind, lexeme = null){
 		assert(lexeme === null || typeof lexeme === 'string');
