@@ -6,13 +6,21 @@ class Test {
 	total = 0;
 	body = null;
 
+	log(...x){
+		console.log('>', ...x);
+	}
+
+	table(...x){
+		console.table(...x);
+	}
+
 	constructor(name, body){
 		this.name = name;
 		this.body = body;
 	}
 
-	expect(pred){
-		if(!pred){
+	expect(predicate){
+		if(!predicate){
 			this.failed += 1;
 		}
 		this.total += 1;
@@ -25,6 +33,7 @@ class Test {
 			+ ` ok in ${this.total - this.failed}/${this.total}`;
 		console.log(msg);
 	}
+
 }
 
 function test(name, body){
@@ -34,4 +43,20 @@ function test(name, body){
 }
 
 // Vim Minify
-'%s/\s*?\s*/\?/g | %s/\s*=\s*/=/g | %s/\s*+\s*/+/g | %s/\s*{\s*/{/g | %s/\s*:\s*/:/g | %s/\s*,\s*/,/g | %s/^\s\+//g | g/^\s*$/d | %s/\n//g | %s/const/let/g'
+`
+	  %s/name/n/g
+	| %s/body/b/g
+	| %s/failed/f/g
+	| %s/total/t/g
+	| %s/predicate/p/g
+	| %s/\s*?\s*/\?/g
+	| %s/\s*=\s*/=/g
+	| %s/\s*+\s*/+/g
+	| %s/\s*{\s*/{/g
+	| %s/\s*:\s*/:/g
+	| %s/\s*,\s*/,/g
+	| %s/^\s\+//g
+	| g/^\s*$/d
+	| %s/\n//g
+`
+

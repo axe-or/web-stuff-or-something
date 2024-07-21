@@ -1,8 +1,8 @@
 'use strict';
 
 /* Import test.js */
-class Test{name='';failed=0;total=0;body=null;letructor(name,body){this.name=name;this.body=body;}expect(pred){if(!pred){this.failed+=1;}this.total+=1;}report(){let ok=this.failed===0;let msg=`[${this.name}] `+(ok?'PASS':'FAIL')+` ok in ${this.total - this.failed}/${this.total}`;console.log(msg);}}function test(name,body){let t=new Test(name,body);t.body(t);return t.report();}
-/******************/
+class Test{n='';f=0;t=0;b=null;log(...x){console.log('>',...x);}table(...x){console.table(...x);}constructor(n,b){this.n=n;this.b=b;}expect(p){if(!p){this.f+=1;}this.t+=1;}report(){const ok=this.f===0;const msg=`[${this.n}] `+(ok?'PASS':'FAIL')+` ok in ${this.t - this.f}/${this.t}`;console.log(msg);}}function test(n,b){let t=new Test(n,b);t.b(t);return t.report();}
+/*------------*/
 
 /* Assert a predicate, emit error if false */
 function assert(pred){
@@ -20,7 +20,7 @@ function unimplemented(msg = ""){
 /* Check if array contains key */
 function contains(arr, key){
 	for(let i = 0; i < arr.length; i++){
-		if(arr[i] == key){ return true; }
+		if(arr[i] === key){ return true; }
 	}
 	return false;
 }
@@ -156,7 +156,7 @@ class Lexer {
 	consumeOnMatch(...accept){
 		let cur = this.peek(0);
 		for(let c of accept){
-			if(cur == c){
+			if(cur === c){
 				return c;
 			}
 		}
@@ -173,7 +173,49 @@ class Lexer {
 	}
 
 	consumeNumber(){
-		unimplemented("Number");
+		this.previous = this.current
+
+		const leadingZero = this.peek(0) === '0';
+		let token = new Token();
+
+		const p = this.peek(1);
+		if(Lexer.isAlpha(p) && leadingZero){
+			let base = 0;
+			let fn = null;
+
+			let digits = '0';
+			switch(p){
+				case 'b': fn = Lexer.isBinary; digits += 'b'; break;
+				case 'o': fn = Lexer.isOctal;  digits += 'o'; break;
+				case 'x': fn = Lexer.isHex;    digits += 'x'; break;
+				default: throw LexerError(`Unknown base prefix "${p}"`);
+			}
+
+			this.current += 2;
+
+			while(!this.atEnd()){
+				const c = this.consume();
+				if(c === '_') {
+					continue
+				}
+				else if(!fn(c)){
+					this.current -= 1;
+					break;
+				}
+				else {
+					digits += c;
+				}
+			}
+
+			token.payload = BigInt(digits);
+			token.kind = TokenKind.Integer_Lit;
+			token.lexeme = this.currentLexeme();
+		}
+		else {
+			unimplemented();
+		}
+
+		return token;
 	}
 
 	consumeIdentifier(){
@@ -237,9 +279,14 @@ class Lexer {
 	static isWhitespace(s){
 		const spaces = Object.freeze([' ', '\n', '\t', '\r', '\v']);
 		for(let i = 0; i < spaces.length; i ++){
-			if(s == spaces[i]){ return true; }
+			if(s === spaces[i]){ return true; }
 		}
 		return false;
+	}
+
+	static isAlpha(s){
+		const pattern = /[a-z]/i;
+		return pattern.test(s);
 	}
 
 	static tokenize(source){
@@ -315,13 +362,14 @@ class Lexer {
 						continue;
 					}
 					else if(Lexer.isDecimal(c)){
-						console.warn("Decimal");
+						lexer.current -= 1;
+						tokens.push(lexer.consumeNumber());
 					}
 					else if(Lexer.isStartOfIdentifier(c)){
 						lexer.current -= 1;
 						tokens.push(lexer.consumeIdentifier());
 					}
-					else if(c == '"'){
+					else if(c === '"'){
 						console.warn("String");
 					}
 					else {
@@ -339,8 +387,13 @@ class Lexer {
 	}
 }
 
-const source = "let x: int = 34 - 3 / 5 + (1 << 7);";
+const source = "let x: int = 0x2000";
 const tokens = Lexer.tokenize(source);
 console.table(tokens);
 
+
+test("Lexer", (T) => {
+	T.expect(1 + 2 === 3);
+	T.log('AKLKFLJKLJ', 2, 3);
+});
 
