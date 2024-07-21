@@ -138,6 +138,9 @@ class Lexer {
 	current = 0;
 	previous = 0;
 
+	file = '';
+	line = 1;
+
 	static keywords = ['not', 'and', 'or', 'let', 'if', 'else', 'for', 'match', 'fn', 'in' ];
 
 	atEnd(){
@@ -150,7 +153,9 @@ class Lexer {
 			return null;
 		}
 		this.current += 1;
-		return this.source[this.current - 1];
+		let c = this.source[this.current - 1];
+		if(c === '\n') { this.line++; }
+		return c;
 	}
 
 	/* Consume token if it is present in the `accept` set. Returns consumed token, otherwhise returns false. */
@@ -171,6 +176,21 @@ class Lexer {
 			return null;
 		}
 		return this.source[pos];
+	}
+
+	static escapeSequence(c){
+		switch(c){
+			case 'n':  return '\n';
+			case 'r':  return '\r';
+			case 't':  return '\t';
+			case 'v':  return '\v';
+			case '\\': return '\\';
+			case '"':  return '"';
+			case '\'': return '\'';
+			case 'x': unimplemented('Arbitrary bytes');
+			case 'U': unimplemented('Arbitrary codepoint');
+		}
+		throw new LexerError(`Unknown escape sequence: '\\${c}'`);
 	}
 
 	consumeNumber(){
@@ -215,6 +235,37 @@ class Lexer {
 		else {
 			unimplemented();
 		}
+
+		return token;
+	}
+
+	consumeString(){
+		this.previous = this.current - 1;
+
+		let str = '';
+		while(true){
+			const c = this.consume();
+
+			if(c === '\n'){
+				throw new LexerError("Multi line strings are not allowed");
+			}
+			else if(c === '\\'){
+				str += Lexer.escapeSequence(this.consume());
+			}
+			else if(c === '"'){
+				break;
+			}
+			else if(this.atEnd()){
+				throw new LexerError("Unterminated string literal");
+			}
+			else {
+				str += c;
+			}
+		}
+
+		let token = new Token(TokenKind.String_Lit);
+		token.lexeme = this.currentLexeme();
+		token.payload = str;
 
 		return token;
 	}
@@ -371,7 +422,7 @@ class Lexer {
 						tokens.push(lexer.consumeIdentifier());
 					}
 					else if(c === '"'){
-						console.warn("String");
+						tokens.push(lexer.consumeString());
 					}
 					else {
 						throw new LexerError(`Unrecognized character: '${c}'`);
@@ -388,13 +439,11 @@ class Lexer {
 	}
 }
 
-const source = "let x: int = 0x2000";
+const source = `let x: int = 0x2000 + "Hello"`;
 const tokens = Lexer.tokenize(source);
 console.table(tokens);
 
 
 test("Lexer", (T) => {
-	T.expect(1 + 2 === 3);
-	T.log('AKLKFLJKLJ', 2, 3);
 });
 
