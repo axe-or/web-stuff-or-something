@@ -48,7 +48,7 @@ function Enum(values){
 /* Token type enum, tokens which can be uniquely identified by their lexeme
  * have it as their value, otherwhise, a unique integer is used */
 const TokenKind = Enum({
-	Unknown: null,
+	Unknown: undefined,
 
 	Paren_Open: '(',
 	Paren_Close: ')',
@@ -200,7 +200,7 @@ class Lexer {
 		let token = new Token();
 
 		const p = this.peek(1);
-		if(Lexer.isAlpha(p) && leadingZero){
+		if(Lexer.isAlpha(p) && leadingZero){ /* Non base-10 integer */
 			let base = 0;
 			let fn = null;
 
@@ -232,8 +232,39 @@ class Lexer {
 			token.kind = TokenKind.Integer_Lit;
 			token.lexeme = this.currentLexeme();
 		}
-		else {
-			unimplemented();
+		else { /* Decimal integer or Real */
+			let digits = '';
+			let isReal = false;
+			let hasExponent = false;
+			
+			while(!this.atEnd()){
+				const c = this.consume();
+				
+				if(c === '.' && !isReal){
+					digits += c;
+					isReal = true;
+				}
+				else if(c === 'e' && !hasExponent){
+					hasExponent = true;
+					isReal = true;
+					digits += c;
+					digits += this.consumeOnMatch('+', '-') || '';
+				}
+				else if(c === '_'){
+					continue;
+				}
+				else if(!Lexer.isDecimal(c)){
+					this.current -= 1;
+					break;
+				}
+				else {
+					digits += c;
+				}
+			}
+			
+			token.kind = isReal ? TokenKind.Real_Lit : TokenKind.Integer_Lit;
+			token.payload = isReal ? parseFloat(digits) : BigInt(digits);
+			token.lexeme = this.currentLexeme();
 		}
 
 		return token;
@@ -433,6 +464,7 @@ class Lexer {
 
 		return tokens;
 	}
+	
 
 	constructor(source){
 		this.source = source;
@@ -441,9 +473,8 @@ class Lexer {
 
 const source = `let x: int = 0x2000 + "Hello"`;
 const tokens = Lexer.tokenize(source);
+
 console.table(tokens);
-
-
 test("Lexer", (T) => {
 });
 
