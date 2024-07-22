@@ -48,7 +48,7 @@ function Enum(values){
 /* Token type enum, tokens which can be uniquely identified by their lexeme
  * have it as their value, otherwhise, a unique integer is used */
 const TokenKind = Enum({
-	Unknown: undefined,
+	Unknown: null,
 
 	Paren_Open: '(',
 	Paren_Close: ')',
@@ -163,6 +163,7 @@ class Lexer {
 		let cur = this.peek(0);
 		for(let c of accept){
 			if(cur === c){
+				this.current += 1;
 				return c;
 			}
 		}
@@ -248,6 +249,7 @@ class Lexer {
 					hasExponent = true;
 					isReal = true;
 					digits += c;
+					//console.warn(this.consumeOnMatch('+', '-'), digits);
 					digits += this.consumeOnMatch('+', '-') || '';
 				}
 				else if(c === '_'){
@@ -471,7 +473,7 @@ class Lexer {
 	}
 }
 
-const source = `let x: int = 0x2000 + "Hello"`;
+const source = `let x: int = 2e+10;`;
 const tokens = Lexer.tokenize(source);
 
 console.table(tokens);
