@@ -1,7 +1,7 @@
 'use strict';
 
 /* Import test.js */
-class Test{n='';f=0;t=0;b=null;log(...x){console.log('>',...x);}table(x){console.table(x);}constructor(n,b){this.n=n;this.b=b;}expect(p){if(!p){this.f+=1;}this.t+=1;}report(){const ok=this.f===0;const msg=`[${this.n}] `+(ok?'PASS':'FAIL')+` ok in ${this.t - this.f}/${this.t}`;console.log(msg);}}function test(n,b){let t=new Test(n,b);t.b(t);return t.report();}
+class Test{n='';f=0;t=0;b=null;log(...x){console.log('>',...x);}table(x){console.table(x);}constructor(n,b){this.n=n;this.b=b;}expect(p){if(!p){this.f+=1;}this.t+=1;return p;}report(){const ok=this.f===0;const msg=`[${this.n}] `+(ok?'PASS':'FAIL')+` ok in ${this.t - this.f}/${this.t}`;console.log(msg);}}function test(n,b){let t=new Test(n,b);t.b(t);return t.report();}
 /*------------*/
 
 /* Assert a predicate, emit error if false */
@@ -114,6 +114,30 @@ class Token {
 		this.kind = kind;
 		this.lexeme = lexeme;
 	}
+	
+	toString(){
+		switch(this.kind){
+		case TokenKind.Identifier: {
+			return `Id(${this.lexeme})`
+		} break;
+		
+		case TokenKind.String_Lit: {
+			return `String(${this.payload})`
+		} break;
+		
+		case TokenKind.Integer_Lit: {
+			return `Int(${this.payload})`
+		} break;
+		
+		case TokenKind.Real_Lit: {
+			return `Real(${this.payload})`
+		} break;
+		
+		default: {
+			return this.kind;
+		}
+		}
+	}
 }
 
 /* Errors */
@@ -144,7 +168,7 @@ class Lexer {
 	static keywords = ['not', 'and', 'or', 'let', 'if', 'else', 'for', 'match', 'fn', 'in' ];
 
 	atEnd(){
-		return this.current >= source.length;
+		return this.current >= this.source.length;
 	}
 
 	/* Consume character, advancing the lexer. */
@@ -467,16 +491,35 @@ class Lexer {
 		return tokens;
 	}
 	
-
 	constructor(source){
 		this.source = source;
 	}
 }
 
-const source = `let x: int = 2e+10;`;
-const tokens = Lexer.tokenize(source);
-
-console.table(tokens);
 test("Lexer", (T) => {
+	function formatTokens(tokens){
+		let fmt = '';
+		for(let i = 0; i < tokens.length; i++){
+			fmt += tokens[i] + ' ';
+		}
+		return fmt.substring(0, fmt.length-1);
+	}
+	const testCases = [
+		[`()[]{}`, `( ) [ ] { }`],
+		[`.,:;`, `. , : ;`],
+		[`+-*/%`, `+ - * / %`],
+		[`>>><<<`, `>> > << <`],
+		[`let if else for x match fn and not`, `let if else for Id(x) match fn and not`],
+		[`0xff 0b10_01 0o10 1_23_4`, `Int(255) Int(9) Int(8) Int(1234)`],
+		[`1.0 -0.5_0 1e9 1e+3 1e-3`, `Real(1) - Real(0.5) Real(1000000000) Real(1000) Real(0.001)`],
+		[``, ``],
+		[``, ``],
+		
+	];
+	for(let i = 0; i < testCases.length; i += 1){
+		const tokens = Lexer.tokenize(testCases[i][0]);
+		const formatted = formatTokens(tokens);
+		T.expect(formatted === testCases[i][1]) || T.log(formatted);
+	}
 });
 
