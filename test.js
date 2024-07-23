@@ -205,15 +205,15 @@ class Lexer {
 
 	static escapeSequence(c){
 		switch(c){
-			case 'n':  return '\n';
-			case 'r':  return '\r';
-			case 't':  return '\t';
-			case 'v':  return '\v';
-			case '\\': return '\\';
-			case '"':  return '"';
-			case '\'': return '\'';
-			case 'x': unimplemented('Arbitrary bytes');
-			case 'U': unimplemented('Arbitrary codepoint');
+		case 'n':  return '\n';
+		case 'r':  return '\r';
+		case 't':  return '\t';
+		case 'v':  return '\v';
+		case '\\': return '\\';
+		case '"':  return '"';
+		case '\'': return '\'';
+		case 'x': unimplemented('Arbitrary bytes');
+		case 'U': unimplemented('Arbitrary codepoint');
 		}
 		throw new LexerError(`Unknown escape sequence: '\\${c}'`);
 	}
@@ -409,90 +409,92 @@ class Lexer {
 			if(c === null){ break }
 
 			switch(c){
-				case '(': addToken(TokenKind.Paren_Open); break;
-				case ')': addToken(TokenKind.Paren_Close); break;
-				case '[': addToken(TokenKind.Square_Open); break;
-				case ']': addToken(TokenKind.Square_Close); break;
-				case '{': addToken(TokenKind.Curly_Open); break;
-				case '}': addToken(TokenKind.Curly_Close); break;
+			case '(': addToken(TokenKind.Paren_Open); break;
+			case ')': addToken(TokenKind.Paren_Close); break;
+			case '[': addToken(TokenKind.Square_Open); break;
+			case ']': addToken(TokenKind.Square_Close); break;
+			case '{': addToken(TokenKind.Curly_Open); break;
+			case '}': addToken(TokenKind.Curly_Close); break;
+			{
+			}
 
-				case ':': addToken(TokenKind.Colon); break;
-				case ';': addToken(TokenKind.Semicolon); break;
-				case '.': addToken(TokenKind.Dot); break;
-				case ',': addToken(TokenKind.Comma); break;
-				case '=':{
-					if(lexer.consumeOnMatch('=')){
-						addToken(TokenKind.Equal_Equal);
-					} else {
-						addToken(TokenKind.Equal);
-					}
-				} break;
+			case ':': addToken(TokenKind.Colon); break;
+			case ';': addToken(TokenKind.Semicolon); break;
+			case '.': addToken(TokenKind.Dot); break;
+			case ',': addToken(TokenKind.Comma); break;
+			case '=':{
+				if(lexer.consumeOnMatch('=')){
+					addToken(TokenKind.Equal_Equal);
+				} else {
+					addToken(TokenKind.Equal);
+				}
+			} break;
 
-				case '+': addToken(TokenKind.Plus); break;
-				case '-': addToken(TokenKind.Minus); break;
-				case '*': addToken(TokenKind.Star); break;
-				case '/':{
-					if(lexer.consumeOnMatch('/')){
-						unimplemented("Comments");
-					} else {
-						addToken(TokenKind.Slash);
-					}
-				} break;
-				case '%': addToken(TokenKind.Modulo); break;
+			case '+': addToken(TokenKind.Plus); break;
+			case '-': addToken(TokenKind.Minus); break;
+			case '*': addToken(TokenKind.Star); break;
+			case '/':{
+				if(lexer.consumeOnMatch('/')){
+					unimplemented("Comments");
+				} else {
+					addToken(TokenKind.Slash);
+				}
+			} break;
+			case '%': addToken(TokenKind.Modulo); break;
 
-				case '~': addToken(TokenKind.Bit_Xor); break;
-				case '&': addToken(TokenKind.Bit_And); break;
-				case '|': addToken(TokenKind.Bit_Or); break;
+			case '~': addToken(TokenKind.Bit_Xor); break;
+			case '&': addToken(TokenKind.Bit_And); break;
+			case '|': addToken(TokenKind.Bit_Or); break;
 
-				case '>':{
-					if(lexer.consumeOnMatch('>')){
-						addToken(TokenKind.Shift_Right);
-					}
-					else if(lexer.consumeOnMatch('=')){
-						addToken(TokenKind.Greater_Equal);
-					} else {
-						addToken(TokenKind.Greater);
-					}
-				} break;
+			case '>':{
+				if(lexer.consumeOnMatch('>')){
+					addToken(TokenKind.Shift_Right);
+				}
+				else if(lexer.consumeOnMatch('=')){
+					addToken(TokenKind.Greater_Equal);
+				} else {
+					addToken(TokenKind.Greater);
+				}
+			} break;
 
-				case '<':{
-					if(lexer.consumeOnMatch('<')){
-						addToken(TokenKind.Shift_Left);
-					} else if(lexer.consumeOnMatch('=')){
-						addToken(TokenKind.Less_Equal);
-					} else {
-						addToken(TokenKind.Less);
-					}
-				} break;
-				
-				case '!':{
-					if(lexer.consumeOnMatch('=')){
-						addToken(TokenKind.Not_Equal);
-					} else {
-						throw new LexerError(`Expected '='`);
-					}
-				} break;
+			case '<':{
+				if(lexer.consumeOnMatch('<')){
+					addToken(TokenKind.Shift_Left);
+				} else if(lexer.consumeOnMatch('=')){
+					addToken(TokenKind.Less_Equal);
+				} else {
+					addToken(TokenKind.Less);
+				}
+			} break;
+			
+			case '!':{
+				if(lexer.consumeOnMatch('=')){
+					addToken(TokenKind.Not_Equal);
+				} else {
+					throw new LexerError(`Expected '='`);
+				}
+			} break;
 
 
-				default: {
-					if(Lexer.isWhitespace(c)){
-						continue;
-					}
-					else if(Lexer.isDecimal(c)){
-						lexer.current -= 1;
-						tokens.push(lexer.consumeNumber());
-					}
-					else if(Lexer.isStartOfIdentifier(c)){
-						lexer.current -= 1;
-						tokens.push(lexer.consumeIdentifier());
-					}
-					else if(c === '"'){
-						tokens.push(lexer.consumeString());
-					}
-					else {
-						throw new LexerError(`Unrecognized character: '${c}'`);
-					}
-				} break;
+			default: {
+				if(Lexer.isWhitespace(c)){
+					continue;
+				}
+				else if(Lexer.isDecimal(c)){
+					lexer.current -= 1;
+					tokens.push(lexer.consumeNumber());
+				}
+				else if(Lexer.isStartOfIdentifier(c)){
+					lexer.current -= 1;
+					tokens.push(lexer.consumeIdentifier());
+				}
+				else if(c === '"'){
+					tokens.push(lexer.consumeString());
+				}
+				else {
+					throw new LexerError(`Unrecognized character: '${c}'`);
+				}
+			} break;
 			}
 		}
 
