@@ -138,6 +138,13 @@ class Token {
 		}
 		}
 	}
+	
+	isLiteral(tk){
+		switch(this.kind){
+			case TokenKind.Identifier, TokenKind.String_Lit, TokenKind.Integer_Lit, TokenKind.Real_Lit: return true;
+		}
+		return false;
+	}
 }
 
 /* Errors */
@@ -203,21 +210,19 @@ class Lexer {
 		return this.source[pos];
 	}
 
-	static escapeSequence(c){
-		switch(c){
-			case 'n':  return '\n';
-			case 'r':  return '\r';
-			case 't':  return '\t';
-			case 'v':  return '\v';
-			case '\\': return '\\';
-			case '"':  return '"';
-			case '\'': return '\'';
-			case 'x': unimplemented('Arbitrary bytes');
-			case 'U': unimplemented('Arbitrary codepoint');
-		}
-		throw new LexerError(`Unknown escape sequence: '\\${c}'`);
-	}
 
+
+	consumeLineComment(){
+		this.previous = this.current;
+		
+		while(!this.atEnd()){
+			const c = this.consume();
+			if(c == '\n'){
+				break;
+			}
+		}
+	}
+	
 	consumeNumber(){
 		this.previous = this.current
 
@@ -397,7 +402,22 @@ class Lexer {
 		const pattern = /[a-z]/i;
 		return pattern.test(s);
 	}
-
+	
+	static escapeSequence(c){
+		switch(c){
+		case 'n':  return '\n';
+		case 'r':  return '\r';
+		case 't':  return '\t';
+		case 'v':  return '\v';
+		case '\\': return '\\';
+		case '"':  return '"';
+		case '\'': return '\'';
+		case 'x': unimplemented('Arbitrary bytes');
+		case 'U': unimplemented('Arbitrary codepoint');
+		}
+		throw new LexerError(`Unknown escape sequence: '\\${c}'`);
+	}
+	
 	static tokenize(source){
 		let lexer = new Lexer(source);
 		let tokens = [];
@@ -409,82 +429,89 @@ class Lexer {
 			if(c === null){ break }
 
 			switch(c){
-				case '(': addToken(TokenKind.Paren_Open); break;
-				case ')': addToken(TokenKind.Paren_Close); break;
-				case '[': addToken(TokenKind.Square_Open); break;
-				case ']': addToken(TokenKind.Square_Close); break;
-				case '{': addToken(TokenKind.Curly_Open); break;
-				case '}': addToken(TokenKind.Curly_Close); break;
+			case '(': addToken(TokenKind.Paren_Open); break;
+			case ')': addToken(TokenKind.Paren_Close); break;
+			case '[': addToken(TokenKind.Square_Open); break;
+			case ']': addToken(TokenKind.Square_Close); break;
+			case '{': addToken(TokenKind.Curly_Open); break;
+			case '}': addToken(TokenKind.Curly_Close); break;
 
-				case ':': addToken(TokenKind.Colon); break;
-				case ';': addToken(TokenKind.Semicolon); break;
-				case '.': addToken(TokenKind.Dot); break;
-				case ',': addToken(TokenKind.Comma); break;
-				case '=':{
-					if(lexer.consumeOnMatch('=')){
-						addToken(TokenKind.Equal_Equal);
-					} else {
-						addToken(TokenKind.Equal);
-					}
-				} break;
+			case ':': addToken(TokenKind.Colon); break;
+			case ';': addToken(TokenKind.Semicolon); break;
+			case '.': addToken(TokenKind.Dot); break;
+			case ',': addToken(TokenKind.Comma); break;
+			case '=':{
+				if(lexer.consumeOnMatch('=')){
+					addToken(TokenKind.Equal_Equal);
+				} else {
+					addToken(TokenKind.Equal);
+				}
+			} break;
 
-				case '+': addToken(TokenKind.Plus); break;
-				case '-': addToken(TokenKind.Minus); break;
-				case '*': addToken(TokenKind.Star); break;
-				case '/':{
-					if(lexer.consumeOnMatch('/')){
-						unimplemented("Comments");
-					} else {
-						addToken(TokenKind.Slash);
-					}
-				} break;
-				case '%': addToken(TokenKind.Modulo); break;
+			case '+': addToken(TokenKind.Plus); break;
+			case '-': addToken(TokenKind.Minus); break;
+			case '*': addToken(TokenKind.Star); break;
+			case '/':{
+				if(lexer.consumeOnMatch('/')){
+					lexer.consumeLineComment();
+				} else {
+					addToken(TokenKind.Slash);
+				}
+			} break;
+			case '%': addToken(TokenKind.Modulo); break;
 
-				case '~': addToken(TokenKind.Bit_Xor); break;
-				case '&': addToken(TokenKind.Bit_And); break;
-				case '|': addToken(TokenKind.Bit_Or); break;
+			case '~': addToken(TokenKind.Bit_Xor); break;
+			case '&': addToken(TokenKind.Bit_And); break;
+			case '|': addToken(TokenKind.Bit_Or); break;
 
-				case '>':{
-					if(lexer.consumeOnMatch('>')){
-						addToken(TokenKind.Shift_Right);
-					}
-					else if(lexer.consumeOnMatch('=')){
-						addToken(TokenKind.Greater_Equal);
-					} else {
-						addToken(TokenKind.Greater);
-					}
-				} break;
+			case '>':{
+				if(lexer.consumeOnMatch('>')){
+					addToken(TokenKind.Shift_Right);
+				}
+				else if(lexer.consumeOnMatch('=')){
+					addToken(TokenKind.Greater_Equal);
+				} else {
+					addToken(TokenKind.Greater);
+				}
+			} break;
 
-				case '<':{
-					if(lexer.consumeOnMatch('<')){
-						addToken(TokenKind.Shift_Left);
-					} else if(lexer.consumeOnMatch('=')){
-						addToken(TokenKind.Less_Equal);
-					} else {
-						addToken(TokenKind.Less);
-					}
-				} break;
+			case '<':{
+				if(lexer.consumeOnMatch('<')){
+					addToken(TokenKind.Shift_Left);
+				} else if(lexer.consumeOnMatch('=')){
+					addToken(TokenKind.Less_Equal);
+				} else {
+					addToken(TokenKind.Less);
+				}
+			} break;
+			
+			case '!':{
+				if(lexer.consumeOnMatch('=')){
+					addToken(TokenKind.Not_Equal);
+				} else {
+					throw new LexerError(`Expected '='`);
+				}
+			} break;
 
-
-				default: {
-					if(Lexer.isWhitespace(c)){
-						continue;
-					}
-					else if(Lexer.isDecimal(c)){
-						lexer.current -= 1;
-						tokens.push(lexer.consumeNumber());
-					}
-					else if(Lexer.isStartOfIdentifier(c)){
-						lexer.current -= 1;
-						tokens.push(lexer.consumeIdentifier());
-					}
-					else if(c === '"'){
-						tokens.push(lexer.consumeString());
-					}
-					else {
-						throw new LexerError(`Unrecognized character: '${c}'`);
-					}
-				} break;
+			default: {
+				if(Lexer.isWhitespace(c)){
+					continue;
+				}
+				else if(Lexer.isDecimal(c)){
+					lexer.current -= 1;
+					tokens.push(lexer.consumeNumber());
+				}
+				else if(Lexer.isStartOfIdentifier(c)){
+					lexer.current -= 1;
+					tokens.push(lexer.consumeIdentifier());
+				}
+				else if(c === '"'){
+					tokens.push(lexer.consumeString());
+				}
+				else {
+					throw new LexerError(`Unrecognized character: '${c}'`);
+				}
+			} break;
 			}
 		}
 
@@ -494,6 +521,41 @@ class Lexer {
 	constructor(source){
 		this.source = source;
 	}
+}
+
+class ASTNode {
+}
+
+class Expression {
+	type = null;
+}
+
+class BinaryExpr extends Expression {
+	left = null;
+	right = null;
+	operator = TokenKind.Unkown;
+}
+
+class UnaryExpr extends Expression {
+	operand = null;
+	operator = TokenKind.Unkown;
+}
+
+class PrimaryExpr extends Expression {
+	kind = TokenKind.Unknown;
+	payload = null;
+	
+	constructor(token){
+		assert(token.isLiteral() || token.kind === TokenKind.Identifier, "Invalid token kind for primary expression");
+		this.kind = token.kind;
+		this.payload = token.payload;
+	}
+}
+
+class Parser {
+	current = null;
+	
+	static parse(){}
 }
 
 test("Lexer", (T) => {
@@ -508,12 +570,13 @@ test("Lexer", (T) => {
 		[`()[]{}`, `( ) [ ] { }`],
 		[`.,:;`, `. , : ;`],
 		[`+-*/%`, `+ - * / %`],
-		[`>>><<<`, `>> > << <`],
+		[`>>><<<~&|`, `>> > << < ~ & |`],
+		[`>=<===!=`, `>= <= == !=`],
 		[`let if else for x match fn and not`, `let if else for Id(x) match fn and not`],
 		[`0xff 0b10_01 0o10 1_23_4`, `Int(255) Int(9) Int(8) Int(1234)`],
 		[`1.0 -0.5_0 1e9 1e+3 1e-3`, `Real(1) - Real(0.5) Real(1000000000) Real(1000) Real(0.001)`],
-		[``, ``],
-		[``, ``],
+		[`"Hi" "\\"Quoted\\"" "With\\n Escapes"`, `String(Hi) String("Quoted") String(With\n Escapes)`],
+		[`// Nothing here`, ``]
 		
 	];
 	for(let i = 0; i < testCases.length; i += 1){
@@ -523,3 +586,6 @@ test("Lexer", (T) => {
 	}
 });
 
+test("Parser", (T) => {
+	
+});
