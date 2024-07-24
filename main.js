@@ -84,6 +84,7 @@ const TokenKind = Enum({
 
 	Not: 'not',
 	And: 'and',
+	Xor: 'xor',
 	Or: 'or',
 
 	Let: 'let',
@@ -114,34 +115,39 @@ class Token {
 		this.kind = kind;
 		this.lexeme = lexeme;
 	}
-	
+
 	toString(){
 		switch(this.kind){
 		case TokenKind.Identifier: {
 			return `Id(${this.lexeme})`
 		} break;
-		
+
 		case TokenKind.String_Lit: {
 			return `String(${this.payload})`
 		} break;
-		
+
 		case TokenKind.Integer_Lit: {
 			return `Int(${this.payload})`
 		} break;
-		
+
 		case TokenKind.Real_Lit: {
 			return `Real(${this.payload})`
 		} break;
-		
+
 		default: {
 			return this.kind;
 		}
 		}
 	}
-	
+
 	isLiteral(tk){
 		switch(this.kind){
-			case TokenKind.Identifier, TokenKind.String_Lit, TokenKind.Integer_Lit, TokenKind.Real_Lit: return true;
+			case TokenKind.Identifier:
+			case TokenKind.String_Lit:
+			case TokenKind.Integer_Lit:
+			case TokenKind.True:
+			case TokenKind.False:
+			case TokenKind.Real_Lit: return true; break;
 		}
 		return false;
 	}
@@ -172,7 +178,7 @@ class Lexer {
 	file = '';
 	line = 1;
 
-	static keywords = ['not', 'and', 'or', 'let', 'if', 'else', 'for', 'match', 'fn', 'in' ];
+	static keywords = ['not', 'xor', 'and', 'or', 'let', 'if', 'else', 'for', 'match', 'fn', 'in' ];
 
 	atEnd(){
 		return this.current >= this.source.length;
@@ -210,11 +216,9 @@ class Lexer {
 		return this.source[pos];
 	}
 
-
-
 	consumeLineComment(){
 		this.previous = this.current;
-		
+
 		while(!this.atEnd()){
 			const c = this.consume();
 			if(c == '\n'){
@@ -222,7 +226,8 @@ class Lexer {
 			}
 		}
 	}
-	
+
+	/* Consume number, real or integer. Integers support bases: 2, 8, 10, 16 */
 	consumeNumber(){
 		this.previous = this.current
 
@@ -266,10 +271,10 @@ class Lexer {
 			let digits = '';
 			let isReal = false;
 			let hasExponent = false;
-			
+
 			while(!this.atEnd()){
 				const c = this.consume();
-				
+
 				if(c === '.' && !isReal){
 					digits += c;
 					isReal = true;
@@ -292,7 +297,7 @@ class Lexer {
 					digits += c;
 				}
 			}
-			
+
 			token.kind = isReal ? TokenKind.Real_Lit : TokenKind.Integer_Lit;
 			token.payload = isReal ? parseFloat(digits) : BigInt(digits);
 			token.lexeme = this.currentLexeme();
@@ -402,7 +407,7 @@ class Lexer {
 		const pattern = /[a-z]/i;
 		return pattern.test(s);
 	}
-	
+
 	static escapeSequence(c){
 		switch(c){
 		case 'n':  return '\n';
@@ -417,7 +422,7 @@ class Lexer {
 		}
 		throw new LexerError(`Unknown escape sequence: '\\${c}'`);
 	}
-	
+
 	static tokenize(source){
 		let lexer = new Lexer(source);
 		let tokens = [];
@@ -484,7 +489,7 @@ class Lexer {
 					addToken(TokenKind.Less);
 				}
 			} break;
-			
+
 			case '!':{
 				if(lexer.consumeOnMatch('=')){
 					addToken(TokenKind.Not_Equal);
@@ -517,13 +522,10 @@ class Lexer {
 
 		return tokens;
 	}
-	
+
 	constructor(source){
 		this.source = source;
 	}
-}
-
-class ASTNode {
 }
 
 class Expression {
@@ -534,28 +536,158 @@ class BinaryExpr extends Expression {
 	left = null;
 	right = null;
 	operator = TokenKind.Unkown;
+
+	constructor(left, op, right){
+		super();
+		const ok = (left instanceof Expression) && (right instanceof Expression);
+		if(!ok){
+			throw new ParserError("Expression operands must be expressions");
+		}
+		this.left = left;
+		this.right = right;
+		this.operator = op;
+	}
 }
 
 class UnaryExpr extends Expression {
 	operand = null;
 	operator = TokenKind.Unkown;
+
+	constructor(op, operand){
+		const ok = operand instanceof Expression;
+		if(!ok){
+			throw new ParserError("Expression operands must be expressions");
+		}
+		this.operator = op;
+		this.operand = operand;
+	}
 }
 
 class PrimaryExpr extends Expression {
 	kind = TokenKind.Unknown;
 	payload = null;
-	
+
 	constructor(token){
-		assert(token.isLiteral() || token.kind === TokenKind.Identifier, "Invalid token kind for primary expression");
+		super();
+		if(!token.isLiteral() && (token.kind !== TokenKind.Identifier)){
+			throw new ParserError("Invalid token kind for primary expression");
+		}
 		this.kind = token.kind;
 		this.payload = token.payload;
 	}
 }
 
 class Parser {
-	current = null;
+	current = 0;
+	tokens = [];
+
+	atEnd(){
+		return this.current >= this.tokens.length;
+	}
+
+	consume(){
+		if(this.atEnd()){
+			return null;
+		}
+		this.current += 1;
+		return this.tokens[this.current - 1];
+	}
 	
+	peek(delta){
+		const pos = this.current + delta;
+		if(pos < 0 || pos >= this.tokens.length){
+			return new Token(TokenKind.End_Of_File);
+		}
+		return this.tokens[pos];
+	}
+
+	parseExpression(minBp){
+		assert(typeof minBp === 'number');
+		
+		let tk = this.consume();
+		let left = null;
+		if(tk.isLiteral(left) || left.kind === TokenKind.Identifier){
+			left = new PrimaryExpr(tk);
+		}
+		else {
+			let rightBp = prefixBindingPower(tk.kind);
+			let right = this.parseExpression(rightBp);
+			return new UnaryExpr(tk.kind, right);
+		}
+		
+		while(!this.atEnd()){
+			let op = this.peek(0);
+			
+			let postifx = postfixBindingPower(op.kind);
+			if(postfix !== null){
+				let leftBp = postfix;
+				if(leftBp < minBp){
+					break;
+				}
+				
+				this.consume();
+				left = new UnaryExpr(op.kind, leftBp);
+			}
+			
+			let infix = Parser.infixBindingPower(tk.kind);
+			if(infix !== null) {
+				let [leftBp, rightBp] = infix;
+				if(leftBp < minBp){
+					break;
+				}
+				
+				this.consume();
+				let right = this.parseExpression(rightBp);
+				left = new BinaryExpr(left, op.kind, right);
+				continue;
+			}
+		
+		}
+		
+
+		return left;
+	}
+
 	static parse(){}
+	
+	static infixBindingPower(operator){
+		const entry = binaryOperators[operator] ?? null;
+		if(!entry){
+			return null;
+		}
+		return entry;
+	}
+	static prefixBindingPower(operator){
+		const entry = prefixOperators[operator] ?? null;
+		if(!entry){
+			return null;
+		}
+		return entry;
+	}
+	static postfixBindingPower(operator){
+		const entry = postfixOperators[operator] ?? null;
+		if(!entry){
+			return null;
+		}
+		return entry;
+	}
+	
+	static binaryOperators = {
+		'+': [10, 11],
+		'-': [10, 11],
+		'*': [30, 31],
+		'/': [30, 31],
+		'%': [30, 31],
+	};
+	
+	static prefixOperators = {
+		'+': 50,
+		'-': 50,
+	};
+	
+	static postfixOperators = {
+		'^': 70,
+	};
 }
 
 test("Lexer", (T) => {
@@ -572,12 +704,12 @@ test("Lexer", (T) => {
 		[`+-*/%`, `+ - * / %`],
 		[`>>><<<~&|`, `>> > << < ~ & |`],
 		[`>=<===!=`, `>= <= == !=`],
-		[`let if else for x match fn and not`, `let if else for Id(x) match fn and not`],
+		[`let if else for x match fn and not or xor`, `let if else for Id(x) match fn and not or xor`],
 		[`0xff 0b10_01 0o10 1_23_4`, `Int(255) Int(9) Int(8) Int(1234)`],
 		[`1.0 -0.5_0 1e9 1e+3 1e-3`, `Real(1) - Real(0.5) Real(1000000000) Real(1000) Real(0.001)`],
 		[`"Hi" "\\"Quoted\\"" "With\\n Escapes"`, `String(Hi) String("Quoted") String(With\n Escapes)`],
-		[`// Nothing here`, ``]
-		
+		[`// Nothing here`, ``],
+
 	];
 	for(let i = 0; i < testCases.length; i += 1){
 		const tokens = Lexer.tokenize(testCases[i][0]);
@@ -587,5 +719,4 @@ test("Lexer", (T) => {
 });
 
 test("Parser", (T) => {
-	
 });
