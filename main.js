@@ -587,7 +587,7 @@ class PrimaryExpr extends Expression {
 	}
 	
 	toString(){
-		return `(${this.token.toString()})`
+		return `${this.token.toString()}`
 	}
 }
 
