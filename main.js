@@ -81,6 +81,8 @@ const TokenKind = Enum({
 	Bit_And: '&',
 	Shift_Left: '<<',
 	Shift_Right: '>>',
+	
+	Caret: '^',
 
 	Not: 'not',
 	And: 'and',
@@ -94,6 +96,7 @@ const TokenKind = Enum({
 	Match: 'match',
 	Fn: 'fn',
 	In: 'in',
+	T
 
 	Identifier: 1,
 	String_Lit: 2,
@@ -140,7 +143,7 @@ class Token {
 		}
 	}
 
-	isLiteral(tk){
+	isLiteral(){
 		switch(this.kind){
 			case TokenKind.Identifier:
 			case TokenKind.String_Lit:
@@ -150,6 +153,15 @@ class Token {
 			case TokenKind.Real_Lit: return true; break;
 		}
 		return false;
+	}
+	
+	isOperator(){
+		const operators = new Set([
+			'+', '-', '/', '*', '%',
+			'&', '|', '~', '<<', '>>',
+			'==', '!=', '>=', '<=',
+			'and', 'or', 'xor', '.',
+		]);
 	}
 }
 
@@ -178,7 +190,7 @@ class Lexer {
 	file = '';
 	line = 1;
 
-	static keywords = ['not', 'xor', 'and', 'or', 'let', 'if', 'else', 'for', 'match', 'fn', 'in' ];
+	static keywords = new Set(['not', 'xor', 'and', 'or', 'let', 'if', 'else', 'for', 'match', 'fn', 'in']);
 
 	atEnd(){
 		return this.current >= this.source.length;
@@ -363,7 +375,7 @@ class Lexer {
 	}
 
 	static isKeyword(s){
-		return Lexer.keywords.some((kw) => kw === s);
+		return Lexer.keywords.has(s);
 	}
 
 	static isStartOfIdentifier(s){
@@ -468,6 +480,7 @@ class Lexer {
 			case '~': addToken(TokenKind.Bit_Xor); break;
 			case '&': addToken(TokenKind.Bit_And); break;
 			case '|': addToken(TokenKind.Bit_Or); break;
+			case '^': addToken(TokenKind.Caret); break;
 
 			case '>':{
 				if(lexer.consumeOnMatch('>')){
@@ -530,7 +543,7 @@ class Lexer {
 
 class Expression {
 	type = null;
-	
+
 	toString(){
 		throw new TypeError("Cannot call abstract method");
 	}
@@ -551,7 +564,7 @@ class BinaryExpr extends Expression {
 		this.right = right;
 		this.operator = op;
 	}
-	
+
 	toString(){
 		return `(${this.operator} ${this.left.toString()} ${this.right.toString()})`
 	}
@@ -559,9 +572,10 @@ class BinaryExpr extends Expression {
 
 class UnaryExpr extends Expression {
 	operand = null;
-	operator = TokenKind.Unkown;
+	operator = TokenKind.Unknown;
 
 	constructor(op, operand){
+		super();
 		const ok = operand instanceof Expression;
 		if(!ok){
 			throw new ParserError("Expression operands must be expressions");
@@ -569,7 +583,7 @@ class UnaryExpr extends Expression {
 		this.operator = op;
 		this.operand = operand;
 	}
-	
+
 	toString(){
 		return `(${this.operator} ${this.operand.toString()})`
 	}
@@ -585,11 +599,16 @@ class PrimaryExpr extends Expression {
 		}
 		this.token = token;
 	}
-	
+
 	toString(){
 		return `${this.token.toString()}`
 	}
 }
+
+/* Left associative infix binding power */
+const opLeft = (p) => [p, p+1];
+/* Right associative infix binding power */
+const opRight = (p) => [p+1, p];
 
 class Parser {
 	current = 0;
@@ -606,7 +625,7 @@ class Parser {
 		this.current += 1;
 		return this.tokens[this.current - 1];
 	}
-	
+
 	peek(delta){
 		const pos = this.current + delta;
 		if(pos < 0 || pos >= this.tokens.length){
@@ -617,33 +636,36 @@ class Parser {
 
 	parseExpression(minBp){
 		assert(typeof minBp === 'number');
-		
+
 		let tk = this.consume();
 		let left = null;
 		if(tk.isLiteral() || tk.kind === TokenKind.Identifier){
 			left = new PrimaryExpr(tk);
 		}
-		else {
+		else if(tk.isOperator()){
 			let rightBp = prefixBindingPower(tk.kind);
 			let right = this.parseExpression(rightBp);
 			return new UnaryExpr(tk.kind, right);
 		}
-		
+		else {
+			unimplemented(`Not an operator ${tk}`);
+		}
+
 		while(!this.atEnd()){
 			let op = this.peek(0); /* Lookahead */
-			
+
 			let postfix = Parser.postfixBindingPower(op.kind);
 			if(postfix !== null){
 				let leftBp = postfix;
 				if(leftBp < minBp){
 					break;
 				}
-				
+
 				this.consume();
-				left = new UnaryExpr(op.kind, leftBp);
+				left = new UnaryExpr(op.kind, left);
 				continue;
 			}
-			
+
 			let infix = Parser.infixBindingPower(op.kind);
 			if(infix !== null) {
 				console.table(infix)
@@ -651,16 +673,16 @@ class Parser {
 				if(leftBp < minBp){
 					break;
 				}
-				
+
 				this.consume();
 				let right = this.parseExpression(rightBp);
 				left = new BinaryExpr(left, op.kind, right);
 				continue;
 			}
-		
+
 			unimplemented("What " + tk.toString());
 		}
-		
+
 		return left;
 	}
 
@@ -668,9 +690,9 @@ class Parser {
 		let parser = new Parser(tokens);
 		return parser.parseExpression(0);
 	}
-	
+
 	static infixBindingPower(operator){
-		const entry = Parser.binaryOperators[operator] ?? null;
+		const entry = Parser.infixOperators[operator] ?? null;
 		console.table(operator, entry);
 		if(entry === null){
 			return null;
@@ -693,26 +715,35 @@ class Parser {
 		}
 		return entry;
 	}
-	
+
 	constructor(tokens){
 		this.tokens = tokens;
 	}
-	
-	static binaryOperators = {
-		'+': [10, 11],
-		'-': [10, 11],
-		'*': [30, 31],
-		'%': [30, 31],
-		'/': [30, 31],
+
+	static infixOperators = {
+		'==': opLeft(10),
+		'!=': opLeft(10),
+		'>=': opLeft(10),
+		'<=': opLeft(10),
+		
+		'+': opLeft(40),
+		'-': opLeft(40),
+
+		'*': opLeft(60),
+		'%': opLeft(60),
+		'/': opLeft(60),
 	};
-	
+
 	static prefixOperators = {
-		'+': 50,
-		'-': 50,
+		'+': 100,
+		'-': 100,
+		'~': 100,
+		'&': 140,
 	};
-	
+
 	static postfixOperators = {
-		'^': 70,
+		'^': 120,
+		'[': 180, /* Special case for Indexing */
 	};
 }
 
@@ -745,7 +776,7 @@ test("Lexer", (T) => {
 });
 
 test("Parser", (T) => {
-	const source = 'x + 23 / 4';
+	const source = '-x + 2 == 23 / 4 + 0xcafebabe^';
 	let tokens = Lexer.tokenize(source);
 	let root = Parser.parse(tokens);
 	console.log(root.toString());
