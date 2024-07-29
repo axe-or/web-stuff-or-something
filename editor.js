@@ -14,11 +14,11 @@ function unimplemented(msg = ""){
 }
 
 let FontHeight = 10;
-let FontWidth = null; // Must be computed with canvas
 let FontName = 'Consolas';
+let FontWidth = getTextWidth('A', `regular'${FontName}' ${FontHeight}px`);
 
-function initCursor(){
-	let cursor = document.querySelector("#cursor");
+
+function initHTMLCursor(cursor){
 	document.querySelector('body').fontSize = `${FontHeight}px`; // TODO don't do this
 	cursor.style.border = '1px solid white';
 	cursor.style.height = FontHeight * 1.85;
@@ -32,11 +32,6 @@ function getHTMLCursor(){
 		(getHTMLCursor = document.querySelector("#cursor"));
 	return curElement;
 }
-
-function updateHTMLCursor(buffer){
-
-}
-
 
 function utfEncode(buf, str){
 	const encoder = utfEncode.encoder ??
@@ -107,44 +102,64 @@ class Buffer {
 	}
 };
 
-
-FontWidth = getTextWidth('A', `regular'${FontName}' ${FontHeight}px`);
-initCursor();
-
-let buf = new Buffer();
-buf.lines.push("int main(){");
-buf.lines.push("	printf(\"Hello\");");
-buf.lines.push("	return 0");
-buf.lines.push("}");
-
-
-//buf.splitLine({line: 0, col: 4});
-//buf.splitLine({line: 1, col: 6});
-
-const P = (x) => { console.log(x); return x; }
-const delay = n => new Promise(r => setTimeout(r, n));
-
-const bufEl = document.querySelector('#editor-buffer');
-
-let cur = getHTMLCursor();
-// cur.style.left = getTextWidth(buf.lines[0], `${FontName} ${FontHeight}pt`);
-
-for(let i = 0; i < buf.lineCount; i++){
-	console.log(buf.lines[i]);
-	let el = document.createElement('div');
-	el.style.whiteSpace = 'pre';
-	el.style.height = FontHeight * 2;
-
-	el.style.padding = 0;
-	el.style.margin = 0;
-	//el.style.backgroundColor = `hsl(${i * 10 + 120},100%,30%)`;
+function displayLines(buffer, root){
+	for(let i = 0; i < buffer.lineCount; i++){
+		let el = document.createElement('div');
+		el.style.whiteSpace = 'pre';
+		el.style.height = FontHeight * 2;
 	
-	el.textContent = buf.lines[i].replaceAll('\t', '    ');
-	bufEl.appendChild(el);
+		el.style.padding = 0;
+		el.style.margin = 0;
+		//el.style.backgroundColor = `hsl(${i * 10 + 120},100%,30%)`;
+		
+		el.textContent = buffer.lines[i].replaceAll('\t', '    ');
+		root.appendChild(el);
+	}
 }
-cur.style.top = FontHeight + 'px';
 
-let _ = (async () => {
+function updateHTMLCursor(buf, cur){
+	const left = FontWidth * (buf.cursor.col + 1);
+	const top = 2 * FontHeight * (buf.cursor.line);
+	cur.style.left = left + 'pt';
+	cur.style.top = top;	
+}
+
+
+function initInputHandling(){
+	window.addEventListener('keydown', (ev) => {
+		if(ev.isPreventedDefault){ return; } // Avoid running event twice.
+		//console.log(ev.key);
+		
+		switch(ev.key){
+			case 'ArrowUp':    Global.buffer.cursor.line -= 1; break;
+			case 'ArrowDown':  Global.buffer.cursor.line += 1; break;
+			case 'ArrowRight': Global.buffer.cursor.col += 1;  break;
+			case 'ArrowLeft':  Global.buffer.cursor.col -= 1;  break;
+		}
+		updateHTMLCursor(Global.buffer, Global.cursorElement);
+		ev.preventDefault();
+	}, true); // Send events directly to listener
+}
+
+
+let Global = {
+	buffer: new Buffer(),
+	bufElement: document.querySelector('#editor-buffer'),
+	cursorElement: document.querySelector('#editor-cursor'),
+};
+
+/* ---- Main ---- */
+Global.buffer.lines.push("int main(){");
+Global.buffer.lines.push("\tprintf(\"Hello\");");
+Global.buffer.lines.push("\treturn 0;");
+Global.buffer.lines.push("}");
+initHTMLCursor(Global.cursorElement);
+displayLines(Global.buffer, Global.bufElement);
+updateHTMLCursor(Global.buffer, Global.cursorElement);
+
+initInputHandling();
+/*
+ let _ = (async () => {
 	for(let i = 0; i < 9; i += 1){
 		const left = FontWidth * (buf.cursor.col + 1);
 		const top = 2 * FontHeight * (buf.cursor.line);
@@ -156,36 +171,5 @@ let _ = (async () => {
 		buf.cursor.line += 1;
 		await delay(500);
 	}
-})();
+})(); */
 
-
-
-
-/*
-	window.addEventListener('keydown', (ev) => {
-		if(ev.isPreventedDefault){ return; } // Avoid running event twice.
-		console.log(ev.key)
-		
-		if(buf.mode === EditorMode.Normal){
-			buf.inputBuf += ev.key;
-		}
-		else if(buf.mode == EditorMode.Insert){
-			switch(ev.key){
-				case 'Escape': {
-					buf.mode = EditorMode.Normal;
-					updateModeIndicator(buf.mode);
-				} break;
-			}
-		}
-		else if(buf.mode == EditorMode.Select){
-			unimplemented();
-		}
-		else {
-			throw Exception("Unkown Mode");
-		}
-		
-		ev.preventDefault();
-	}, true); // Send events directly to listener
-
-main()
-*/
