@@ -13,10 +13,13 @@ function unimplemented(msg = ""){
 	throw new Error("Unimplemented");
 }
 
-let FontHeight = 10;
-let FontName = 'Consolas';
-let FontWidth = getTextWidth('A', `regular'${FontName}' ${FontHeight}px`);
+const min = (a, b) => a < b ? a : b;
+const max = (a, b) => a > b ? a : b;
+const clamp = (lo, x, hi) => min(max(lo, x), hi);
 
+let FontHeight = 10;
+let FontName   = 'Consolas';
+let FontWidth  = getTextWidth('A', `regular '${FontName}' ${FontHeight}px`);
 
 function initHTMLCursor(cursor){
 	document.querySelector('body').fontSize = `${FontHeight}px`; // TODO don't do this
@@ -45,9 +48,9 @@ function getTextWidth(text, font) {
   const context = canvas.getContext("2d");
   context.font = font;
   const metrics = context.measureText(text);
+  
   return metrics.width;
 }
-
 
 class Buffer {
 	lines = [];
@@ -58,6 +61,14 @@ class Buffer {
 	
 	constructor(){}
 
+	moveCursor(dx, dy){
+		let l = this.cursor.line;
+		const c = this.cursor.col;
+		this.cursor.line = clamp(0, l + dy, this.lines.length - 1);
+		l = this.cursor.line;
+		this.cursor.col = clamp(0, c + dx, this.lines[l].length);
+	}
+	
 	underCursor(cursor = null){
 		const cur = cursor ?? this.cursor;
 		return this.lines[cur.line][cur.col];
@@ -102,9 +113,16 @@ class Buffer {
 	}
 };
 
-function displayLines(buffer, root){
+function updateLines(buffer, root){
+	// TODO: Better system
+	let lines = root.querySelectorAll('.editor-line');
+	for(let i = 0; i < lines.length; i++){
+		root.removeChild(lines[i]);
+	}
+	
 	for(let i = 0; i < buffer.lineCount; i++){
 		let el = document.createElement('div');
+		el.className = 'editor-line';
 		el.style.whiteSpace = 'pre';
 		el.style.height = FontHeight * 2;
 	
@@ -112,16 +130,16 @@ function displayLines(buffer, root){
 		el.style.margin = 0;
 		//el.style.backgroundColor = `hsl(${i * 10 + 120},100%,30%)`;
 		
-		el.textContent = buffer.lines[i].replaceAll('\t', '    ');
+		el.textContent = buffer.lines[i].replaceAll('\t', ' ');
 		root.appendChild(el);
 	}
 }
 
 function updateHTMLCursor(buf, cur){
-	const left = FontWidth * (buf.cursor.col + 1);
-	const top = 2 * FontHeight * (buf.cursor.line);
+	const left = FontWidth * (buf.cursor.col);
+	const top =  2 * FontHeight * (buf.cursor.line);
 	cur.style.left = left + 'pt';
-	cur.style.top = top;	
+	cur.style.top = top;
 }
 
 
@@ -131,12 +149,19 @@ function initInputHandling(){
 		//console.log(ev.key);
 		
 		switch(ev.key){
-			case 'ArrowUp':    Global.buffer.cursor.line -= 1; break;
-			case 'ArrowDown':  Global.buffer.cursor.line += 1; break;
-			case 'ArrowRight': Global.buffer.cursor.col += 1;  break;
-			case 'ArrowLeft':  Global.buffer.cursor.col -= 1;  break;
+			case 'ArrowUp':    Global.buffer.moveCursor(0, -1); break;
+			case 'ArrowDown':  Global.buffer.moveCursor(0, +1); break;
+			case 'ArrowLeft':  Global.buffer.moveCursor(-1, 0); break;
+			case 'ArrowRight': Global.buffer.moveCursor(+1, 0); break;
+			case 'Enter':
+				Global.buffer.splitLine();
+				updateLines(Global.buffer, Global.bufElement);
+			break;
+
 		}
 		updateHTMLCursor(Global.buffer, Global.cursorElement);
+		
+		// console.log([Global.buffer.cursor, Global.buffer.underCursor()]);
 		ev.preventDefault();
 	}, true); // Send events directly to listener
 }
@@ -150,11 +175,11 @@ let Global = {
 
 /* ---- Main ---- */
 Global.buffer.lines.push("int main(){");
-Global.buffer.lines.push("\tprintf(\"Hello\");");
-Global.buffer.lines.push("\treturn 0;");
+Global.buffer.lines.push("  printf(\"Hello\");");
+Global.buffer.lines.push("  return 0;");
 Global.buffer.lines.push("}");
 initHTMLCursor(Global.cursorElement);
-displayLines(Global.buffer, Global.bufElement);
+updateLines(Global.buffer, Global.bufElement);
 updateHTMLCursor(Global.buffer, Global.cursorElement);
 
 initInputHandling();
