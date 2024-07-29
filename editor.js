@@ -22,7 +22,7 @@ function initCursor(){
 	document.querySelector('body').fontSize = `${FontHeight}px`; // TODO don't do this
 	cursor.style.border = '1px solid white';
 	cursor.style.height = FontHeight + 6;
-	cursor.style.width = FontWidth + 1;
+	cursor.style.width = FontWidth;
 	cursor.style.position = 'absolute';
 	return cursor;
 }
@@ -108,7 +108,7 @@ class Buffer {
 };
 
 
-FontWidth = getTextWidth('A', `${FontName} ${FontHeight}px`);
+FontWidth = getTextWidth('A', `regular'${FontName}' ${FontHeight}px`);
 initCursor();
 
 let buf = new Buffer();
@@ -116,6 +116,10 @@ buf.lines.push("int main(){");
 buf.lines.push("	printf(\"Hello\");");
 buf.lines.push("	return 0");
 buf.lines.push("}");
+buf.lines.push("");
+buf.lines.push("");
+buf.lines.push("");
+buf.lines.push("");
 
 //buf.splitLine({line: 0, col: 4});
 //buf.splitLine({line: 1, col: 6});
@@ -132,16 +136,35 @@ for(let i = 0; i < buf.lineCount; i++){
 	console.log(buf.lines[i]);
 	let el = document.createElement('div');
 	el.style.whiteSpace = 'pre';
+	el.style.height = FontHeight * 2;
+
+	el.style.padding = 0;
+	el.style.margin = 1;
+	
+	el.style.backgroundColor = `hsl(${i * 10 + 120},100%,30%)`;
+	
 	el.textContent = buf.lines[i].replaceAll('\t', '    ');
 	bufEl.appendChild(el);
 }
 cur.style.top = FontHeight + 'px';
 
 let _ = (async () => {
-	for(let i = 0; i <7; i += 1){
-		const left = (FontWidth * (buf.cursor.col + 1));
+	let lastTop = 0;
+	for(let i = 0; i < 9; i += 1){
+		const left = FontWidth * (buf.cursor.col + 1);
+		const top = 20 * (buf.cursor.line);
+
 		cur.style.left = left + 'pt';
-		buf.cursor.col += 1;
+		cur.style.top = top;
+		console.table({
+			top: top,
+			height: FontHeight,
+			delta: top - lastTop,
+		});
+		lastTop = top;
+		
+		//buf.cursor.col += 1;
+		buf.cursor.line += 1;
 		await delay(500);
 	}
 })();
