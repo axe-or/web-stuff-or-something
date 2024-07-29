@@ -17,15 +17,12 @@ const min = (a, b) => a < b ? a : b;
 const max = (a, b) => a > b ? a : b;
 const clamp = (lo, x, hi) => min(max(lo, x), hi);
 
-let FontHeight = 10;
-let FontName   = 'Consolas';
-let FontWidth  = getTextWidth('A', `regular '${FontName}' ${FontHeight}px`);
 
 function initHTMLCursor(cursor){
-	document.querySelector('body').fontSize = `${FontHeight}px`; // TODO don't do this
+	document.querySelector('body').fontSize = `${Global.FontHeight}px`; // TODO don't do this
 	cursor.style.border = '1px solid white';
-	cursor.style.height = FontHeight * 1.85;
-	cursor.style.width = FontWidth;
+	cursor.style.height = Global.FontHeight * 1.85;
+	cursor.style.width = Global.FontWidth;
 	cursor.style.position = 'absolute';
 	return cursor;
 }
@@ -124,7 +121,7 @@ function updateLines(buffer, root){
 		let el = document.createElement('div');
 		el.className = 'editor-line';
 		el.style.whiteSpace = 'pre';
-		el.style.height = FontHeight * 2;
+		el.style.height = Global.FontHeight * 2;
 	
 		el.style.padding = 0;
 		el.style.margin = 0;
@@ -136,12 +133,11 @@ function updateLines(buffer, root){
 }
 
 function updateHTMLCursor(buf, cur){
-	const left = FontWidth * (buf.cursor.col);
-	const top =  2 * FontHeight * (buf.cursor.line);
+	const left = Global.FontWidth * (buf.cursor.col);
+	const top =  2 * Global.FontHeight * (buf.cursor.line);
 	cur.style.left = left + 'pt';
 	cur.style.top = top;
 }
-
 
 function initInputHandling(){
 	window.addEventListener('keydown', (ev) => {
@@ -157,7 +153,6 @@ function initInputHandling(){
 				Global.buffer.splitLine();
 				updateLines(Global.buffer, Global.bufElement);
 			break;
-
 		}
 		updateHTMLCursor(Global.buffer, Global.cursorElement);
 		
@@ -171,6 +166,9 @@ let Global = {
 	buffer: new Buffer(),
 	bufElement: document.querySelector('#editor-buffer'),
 	cursorElement: document.querySelector('#editor-cursor'),
+	FontHeight: 10,
+	FontName: 'Consolas',
+	FontWidth: 1,
 };
 
 /* ---- Main ---- */
@@ -178,23 +176,9 @@ Global.buffer.lines.push("int main(){");
 Global.buffer.lines.push("  printf(\"Hello\");");
 Global.buffer.lines.push("  return 0;");
 Global.buffer.lines.push("}");
+Global.FontWidth = getTextWidth('A', `regular '${Global.FontName}' ${Global.FontHeight}px`);
 initHTMLCursor(Global.cursorElement);
 updateLines(Global.buffer, Global.bufElement);
 updateHTMLCursor(Global.buffer, Global.cursorElement);
 
 initInputHandling();
-/*
- let _ = (async () => {
-	for(let i = 0; i < 9; i += 1){
-		const left = FontWidth * (buf.cursor.col + 1);
-		const top = 2 * FontHeight * (buf.cursor.line);
-
-		cur.style.left = left + 'pt';
-		cur.style.top = top;
-
-		buf.cursor.col += 1;
-		buf.cursor.line += 1;
-		await delay(500);
-	}
-})(); */
-
