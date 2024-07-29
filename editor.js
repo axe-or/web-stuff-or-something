@@ -21,7 +21,7 @@ function initCursor(){
 	let cursor = document.querySelector("#cursor");
 	document.querySelector('body').fontSize = `${FontHeight}px`; // TODO don't do this
 	cursor.style.border = '1px solid white';
-	cursor.style.height = FontHeight + 6;
+	cursor.style.height = FontHeight * 1.85;
 	cursor.style.width = FontWidth;
 	cursor.style.position = 'absolute';
 	return cursor;
@@ -116,10 +116,7 @@ buf.lines.push("int main(){");
 buf.lines.push("	printf(\"Hello\");");
 buf.lines.push("	return 0");
 buf.lines.push("}");
-buf.lines.push("");
-buf.lines.push("");
-buf.lines.push("");
-buf.lines.push("");
+
 
 //buf.splitLine({line: 0, col: 4});
 //buf.splitLine({line: 1, col: 6});
@@ -139,9 +136,8 @@ for(let i = 0; i < buf.lineCount; i++){
 	el.style.height = FontHeight * 2;
 
 	el.style.padding = 0;
-	el.style.margin = 1;
-	
-	el.style.backgroundColor = `hsl(${i * 10 + 120},100%,30%)`;
+	el.style.margin = 0;
+	//el.style.backgroundColor = `hsl(${i * 10 + 120},100%,30%)`;
 	
 	el.textContent = buf.lines[i].replaceAll('\t', '    ');
 	bufEl.appendChild(el);
@@ -149,21 +145,14 @@ for(let i = 0; i < buf.lineCount; i++){
 cur.style.top = FontHeight + 'px';
 
 let _ = (async () => {
-	let lastTop = 0;
 	for(let i = 0; i < 9; i += 1){
 		const left = FontWidth * (buf.cursor.col + 1);
-		const top = 20 * (buf.cursor.line);
+		const top = 2 * FontHeight * (buf.cursor.line);
 
 		cur.style.left = left + 'pt';
 		cur.style.top = top;
-		console.table({
-			top: top,
-			height: FontHeight,
-			delta: top - lastTop,
-		});
-		lastTop = top;
-		
-		//buf.cursor.col += 1;
+
+		buf.cursor.col += 1;
 		buf.cursor.line += 1;
 		await delay(500);
 	}
