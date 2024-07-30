@@ -20,7 +20,6 @@ const max = (a, b) => a > b ? a : b;
 const clamp = (lo, x, hi) => min(max(lo, x), hi);
 
 function initHTMLCursor(cursor){
-	document.querySelector('body').fontSize = `${Global.FontHeight}px`; // TODO don't do this
 	cursor.style.height = Global.FontHeight + 1;
 	cursor.style.width = Global.FontWidth;
 	cursor.style.position = 'absolute';
@@ -29,12 +28,6 @@ function initHTMLCursor(cursor){
 	cursor.style.padding = 0;
 	cursor.style.zIndex = -2;
 	return cursor;
-}
-
-function getHTMLCursor(){
-	let curElement = getHTMLCursor.curElement ??
-		(getHTMLCursor = document.querySelector("#cursor"));
-	return curElement;
 }
 
 function utfEncode(buf, str){
@@ -125,14 +118,14 @@ function updateLines(buffer, root){
 }
 
 function updateHTMLCursor(buf, cur){
-	const left = Global.FontWidth * (buf.cursor.col*1.0);
-	const top =  2.0 * Global.FontHeight * (buf.cursor.line);
+	const left = Global.FontWidth * buf.cursor.col;
+	const top =  2.0 * Global.FontHeight * buf.cursor.line;
 	cur.style.left = left;
 	cur.style.top = top;
 }
 
-function initInputHandling(){
-	window.addEventListener('keydown', (ev) => {
+function initInputHandling(ele){
+	ele.addEventListener('keydown', (ev) => {
 		if(ev.isPreventedDefault){ return; } // Avoid running event twice.
 		
 		let dirty = false;
@@ -145,6 +138,7 @@ function initInputHandling(){
 			
 			case 'Enter':
 				Global.buffer.splitLine();
+				Global.buffer.moveCursor(0, +1);
 				dirty = true;
 			break;
 			
@@ -176,6 +170,19 @@ function initInputHandling(){
 	}, true); // Send events directly to listener
 }
 
+function getFontWidth(height){
+	const tmp = document.createElement('div');
+	const body = document.querySelector('body');
+	tmp.textContent = 'X';
+	tmp.style.width = 'fit-content';
+	tmp.style.padding = 0;
+	tmp.style.margin = 0;
+	tmp.style.fontSize = height;
+	body.appendChild(tmp);
+	const W = window.getComputedStyle(tmp, null).width;
+	body.removeChild(tmp);
+	return parseFloat(W);
+}
 
 let Global = {
 	buffer: new Buffer(),
@@ -186,41 +193,22 @@ let Global = {
 	FontWidth: 1,
 };
 
-const SampleText = 'X'
 /* ---- Main ---- */
 document.querySelector('body').style.fontSize = Global.FontHeight + 'px';
+Global.FontWidth = getFontWidth(Global.fontHeight);
+Global.buffer.lines.push("");
 
-Global.buffer.lines.push("**************************************************");
+// Global.buffer.lines.push("**************************************************");
 // Global.buffer.lines.push("int main(){");
 // Global.buffer.lines.push("  printf(\"Hello\");");
 // Global.buffer.lines.push("  return 0;");
 // Global.buffer.lines.push("}");
 //Global.FontWidth = (getTextWidth(SampleText, `regular '${Global.FontName}' ${Global.FontHeight}px`)) / SampleText.length;
 
-Global.FontWidth = getFontWidth(Global.fontHeight);
-
-function getFontWidth(height){
-	const tmp = document.createElement('div');
-	const body = document.querySelector('body');
-	tmp.textContent = 'X';
-	tmp.style.width = 'fit-content';
-	tmp.style.padding = 0;
-	tmp.style.margin = 0;
-	tmp.style.fontSize = height + 'px';
-	body.appendChild(tmp);
-	const W = window.getComputedStyle(tmp, null).width;
-	body.removeChild(tmp);
-	return parseFloat(W);
-}
-
+updateLines(Global.buffer, Global.bufElement);
 
 initHTMLCursor(Global.cursorElement);
-Global.cursorElement.focus();
-Global.cursorElement.addEventListener('keydown', (ev) => {
-	console.log(Global.cursorElement.value);
-});
-updateLines(Global.buffer, Global.bufElement);
 updateHTMLCursor(Global.buffer, Global.cursorElement);
 
-initInputHandling();
+initInputHandling(document.querySelector('body'));
 
