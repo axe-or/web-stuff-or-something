@@ -1,5 +1,7 @@
 'use strict';
 
+const P = (x) => { console.log(`>> ${x}`); return x; }
+
 function assert(pred){
 	if(!pred){
 		throw new Error("Assertion failure");
@@ -17,36 +19,21 @@ const min = (a, b) => a < b ? a : b;
 const max = (a, b) => a > b ? a : b;
 const clamp = (lo, x, hi) => min(max(lo, x), hi);
 
-
 function initHTMLCursor(cursor){
-	document.querySelector('body').fontSize = `${Global.FontHeight}px`; // TODO don't do this
-	cursor.style.border = '1px solid white';
-	cursor.style.height = Global.FontHeight * 1.85;
+	cursor.style.height = Global.FontHeight + 1;
 	cursor.style.width = Global.FontWidth;
 	cursor.style.position = 'absolute';
+	cursor.style.backgroundColor = '#3d3d3d';
+	cursor.style.margin = 0;
+	cursor.style.padding = 0;
+	cursor.style.zIndex = -2;
 	return cursor;
-}
-
-function getHTMLCursor(){
-	let curElement = getHTMLCursor.curElement ??
-		(getHTMLCursor = document.querySelector("#cursor"));
-	return curElement;
 }
 
 function utfEncode(buf, str){
 	const encoder = utfEncode.encoder ??
 		(utfEncode.encoder = new TextEncoder());
 	encoder.encodeInto(str, buf);
-}
-
-function getTextWidth(text, font) {
-  const canvas = getTextWidth.canvas ??
-	(getTextWidth.canvas = document.createElement("canvas"));
-  const context = canvas.getContext("2d");
-  context.font = font;
-  const metrics = context.measureText(text);
-  
-  return metrics.width;
 }
 
 class Buffer {
@@ -84,7 +71,6 @@ class Buffer {
 		let postCur = line.substring(cur.col, line.length);
 		
 		this.lines.splice(cur.line+1, 0, postCur)
-		console.log(this.lines)
 		
 		this.lines[cur.line] = this.lines[cur.line].substring(0, cur.col);
 	}
@@ -92,12 +78,14 @@ class Buffer {
 	insertText(text){
 		// TODO: Ensure text doesn't have \n
 		if(this.lines.length <= 0){ lines.push(''); }
-		
-		// TODO: checkCursor()
-
+		this._insertIntoLine(text);
 	}
 	
-	_insertIntoLine(){
+	deleteLine(idx){
+		this.lines.splice(idx, 1);
+	}
+	
+	_insertIntoLine(text){
 		const cur = this.cursor;
 		const line = this.lines[cur.line];
 		const head = line.substring(0, cur.col);
@@ -121,6 +109,7 @@ function updateLines(buffer, root){
 		let el = document.createElement('div');
 		el.className = 'editor-line';
 		el.style.whiteSpace = 'pre';
+		el.style.width = 'fit-content';
 		el.style.height = Global.FontHeight * 2;
 	
 		el.style.padding = 0;
@@ -133,52 +122,97 @@ function updateLines(buffer, root){
 }
 
 function updateHTMLCursor(buf, cur){
-	const left = Global.FontWidth * (buf.cursor.col);
-	const top =  2 * Global.FontHeight * (buf.cursor.line);
-	cur.style.left = left + 'pt';
+	const left = Global.FontWidth * buf.cursor.col;
+	const top =  2.0 * Global.FontHeight * buf.cursor.line;
+	cur.style.left = left;
 	cur.style.top = top;
 }
 
-function initInputHandling(){
-	window.addEventListener('keydown', (ev) => {
+function initInputHandling(ele){
+	ele.addEventListener('keydown', (ev) => {
 		if(ev.isPreventedDefault){ return; } // Avoid running event twice.
-		//console.log(ev.key);
+		
+		let dirty = false;
 		
 		switch(ev.key){
 			case 'ArrowUp':    Global.buffer.moveCursor(0, -1); break;
 			case 'ArrowDown':  Global.buffer.moveCursor(0, +1); break;
 			case 'ArrowLeft':  Global.buffer.moveCursor(-1, 0); break;
 			case 'ArrowRight': Global.buffer.moveCursor(+1, 0); break;
+			
 			case 'Enter':
 				Global.buffer.splitLine();
-				updateLines(Global.buffer, Global.bufElement);
+				Global.buffer.moveCursor(0, +1);
+				dirty = true;
+			break;
+			
+			case 'Shift':
+			case 'Control': break;
+			
+			case 'Tab':
+				Global.buffer.insertText('    ');
+				Global.buffer.moveCursor(+4, 0);
+				dirty = true;
+			break;
+			
+			case 'End': Global.buffer.moveCursor(+10000000, 0); break;
+			case 'Home': Global.buffer.moveCursor(-10000000, 0); break;
+			
+			case 'Backspace': break;
+			default:
+				Global.buffer.insertText(ev.key);
+				Global.buffer.moveCursor(+1, 0);
+				dirty = true;
+
 			break;
 		}
 		updateHTMLCursor(Global.buffer, Global.cursorElement);
 		
-		// console.log([Global.buffer.cursor, Global.buffer.underCursor()]);
+		if(dirty) { updateLines(Global.buffer, Global.bufElement); }
+		
 		ev.preventDefault();
 	}, true); // Send events directly to listener
 }
 
+function getFontWidth(height){
+	const tmp = document.createElement('div');
+	const body = document.querySelector('body');
+	tmp.textContent = 'X';
+	tmp.style.width = 'fit-content';
+	tmp.style.padding = 0;
+	tmp.style.margin = 0;
+	tmp.style.fontSize = height;
+	body.appendChild(tmp);
+	const W = window.getComputedStyle(tmp, null).width;
+	body.removeChild(tmp);
+	return parseFloat(W);
+}
 
 let Global = {
 	buffer: new Buffer(),
 	bufElement: document.querySelector('#editor-buffer'),
 	cursorElement: document.querySelector('#editor-cursor'),
-	FontHeight: 10,
-	FontName: 'Consolas',
+	FontHeight: 12,
+	FontName: 'monospace',
 	FontWidth: 1,
 };
 
 /* ---- Main ---- */
-Global.buffer.lines.push("int main(){");
-Global.buffer.lines.push("  printf(\"Hello\");");
-Global.buffer.lines.push("  return 0;");
-Global.buffer.lines.push("}");
-Global.FontWidth = getTextWidth('A', `regular '${Global.FontName}' ${Global.FontHeight}px`);
-initHTMLCursor(Global.cursorElement);
+document.querySelector('body').style.fontSize = Global.FontHeight + 'px';
+Global.FontWidth = getFontWidth(Global.fontHeight);
+Global.buffer.lines.push("");
+
+// Global.buffer.lines.push("**************************************************");
+// Global.buffer.lines.push("int main(){");
+// Global.buffer.lines.push("  printf(\"Hello\");");
+// Global.buffer.lines.push("  return 0;");
+// Global.buffer.lines.push("}");
+//Global.FontWidth = (getTextWidth(SampleText, `regular '${Global.FontName}' ${Global.FontHeight}px`)) / SampleText.length;
+
 updateLines(Global.buffer, Global.bufElement);
+
+initHTMLCursor(Global.cursorElement);
 updateHTMLCursor(Global.buffer, Global.cursorElement);
 
-initInputHandling();
+initInputHandling(document.querySelector('body'));
+
