@@ -81,6 +81,10 @@ class Buffer {
 		this._insertIntoLine(text);
 	}
 	
+	deleteLine(idx){
+		this.lines.splice(idx, 1);
+	}
+	
 	_insertIntoLine(text){
 		const cur = this.cursor;
 		const line = this.lines[cur.line];
@@ -93,6 +97,14 @@ class Buffer {
 		return this.lines.length;
 	}
 };
+
+class Config {
+	wordDelimiters = [
+		...(' \n\t\r.,;:\`\'\"'.split('')), // Punctuation and whitespace
+		...('()[]{}<>'.split('')),          // Open-close delimiters
+		...('+-*/%&|~^\\=$#@!'.split('')),  // Operators and others
+	];
+}
 
 function updateLines(buffer, root){
 	// TODO: Better system
@@ -144,7 +156,7 @@ function initInputHandling(ele){
 			
 			case 'Shift':
 			case 'Control': break;
-			
+			case 'Dead': break;
 			case 'Tab':
 				Global.buffer.insertText('    ');
 				Global.buffer.moveCursor(+4, 0);
@@ -170,10 +182,13 @@ function initInputHandling(ele){
 	}, true); // Send events directly to listener
 }
 
-function getFontWidth(height){
-	const tmp = document.createElement('div');
-	const body = document.querySelector('body');
+function getFontWidth(root, height){
+	assert((root ?? false) && (height ?? false));
+	const tmp = document.createElement('span');
+	const body = root;
 	tmp.textContent = 'X';
+	tmp.style.color = 'lime';
+	tmp.style.position = 'absolute';
 	tmp.style.width = 'fit-content';
 	tmp.style.padding = 0;
 	tmp.style.margin = 0;
@@ -184,18 +199,37 @@ function getFontWidth(height){
 	return parseFloat(W);
 }
 
+class Queue {
+	data = [];
+	
+	get length(){
+		return this.data.length;
+	}
+	
+	push(val){
+		this.data.push(val);
+	}
+	
+	pop(){
+		return this.data.shift();
+	}
+}
+
 let Global = {
 	buffer: new Buffer(),
 	bufElement: document.querySelector('#editor-buffer'),
 	cursorElement: document.querySelector('#editor-cursor'),
-	FontHeight: 12,
+	FontHeight: 9,
 	FontName: 'monospace',
 	FontWidth: 1,
 };
 
 /* ---- Main ---- */
-document.querySelector('body').style.fontSize = Global.FontHeight + 'px';
-Global.FontWidth = getFontWidth(Global.fontHeight);
+Global.FontWidth = getFontWidth(Global.bufElement, Global.FontHeight);
+document.querySelector('body').style.fontSize = Global.FontHeight;
+P(Global.FontWidth);
+
+
 Global.buffer.lines.push("");
 
 // Global.buffer.lines.push("**************************************************");
@@ -203,7 +237,7 @@ Global.buffer.lines.push("");
 // Global.buffer.lines.push("  printf(\"Hello\");");
 // Global.buffer.lines.push("  return 0;");
 // Global.buffer.lines.push("}");
-//Global.FontWidth = (getTextWidth(SampleText, `regular '${Global.FontName}' ${Global.FontHeight}px`)) / SampleText.length;
+// Global.FontWidth = (getTextWidth(SampleText, `regular '${Global.FontName}' ${Global.FontHeight}px`)) / SampleText.length;
 
 updateLines(Global.buffer, Global.bufElement);
 
