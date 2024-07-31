@@ -20,8 +20,8 @@ const max = (a, b) => a > b ? a : b;
 const clamp = (lo, x, hi) => min(max(lo, x), hi);
 
 function initHTMLCursor(cursor){
-	cursor.style.height = Global.FontHeight + 1;
-	cursor.style.width = Global.FontWidth;
+	cursor.style.height = Global.fontHeight + 1;
+	cursor.style.width = Global.fontWidth;
 	cursor.style.position = 'absolute';
 	cursor.style.backgroundColor = '#3d3d3d';
 	cursor.style.margin = 0;
@@ -118,7 +118,7 @@ function updateLines(buffer, root){
 		el.className = 'editor-line';
 		el.style.whiteSpace = 'pre';
 		el.style.width = 'fit-content';
-		el.style.height = Global.FontHeight * 2;
+		el.style.height = Global.fontHeight * 2;
 	
 		el.style.padding = 0;
 		el.style.margin = 0;
@@ -130,8 +130,8 @@ function updateLines(buffer, root){
 }
 
 function updateHTMLCursor(buf, cur){
-	const left = Global.FontWidth * buf.cursor.col;
-	const top =  2.0 * Global.FontHeight * buf.cursor.line;
+	const left = Global.fontWidth * buf.cursor.col;
+	const top =  2.0 * Global.fontHeight * buf.cursor.line;
 	cur.style.left = left;
 	cur.style.top = top;
 }
@@ -182,7 +182,7 @@ function initInputHandling(ele){
 	}, true); // Send events directly to listener
 }
 
-function getFontWidth(root, height){
+function getfontWidth(root, height){
 	assert((root ?? false) && (height ?? false));
 	const tmp = document.createElement('span');
 	const body = root;
@@ -219,15 +219,15 @@ let Global = {
 	buffer: new Buffer(),
 	bufElement: document.querySelector('#editor-buffer'),
 	cursorElement: document.querySelector('#editor-cursor'),
-	FontHeight: 9,
+	fontHeight: 9,
 	FontName: 'monospace',
-	FontWidth: 1,
+	fontWidth: 1,
 };
 
 /* ---- Main ---- */
-Global.FontWidth = getFontWidth(Global.bufElement, Global.FontHeight);
-document.querySelector('body').style.fontSize = Global.FontHeight;
-P(Global.FontWidth);
+Global.fontWidth = getfontWidth(Global.bufElement, Global.fontHeight);
+document.querySelector('body').style.fontSize = Global.fontHeight;
+P(Global.fontWidth);
 
 
 Global.buffer.lines.push("");
@@ -237,7 +237,7 @@ Global.buffer.lines.push("");
 // Global.buffer.lines.push("  printf(\"Hello\");");
 // Global.buffer.lines.push("  return 0;");
 // Global.buffer.lines.push("}");
-// Global.FontWidth = (getTextWidth(SampleText, `regular '${Global.FontName}' ${Global.FontHeight}px`)) / SampleText.length;
+// Global.fontWidth = (getTextWidth(SampleText, `regular '${Global.FontName}' ${Global.fontHeight}px`)) / SampleText.length;
 
 updateLines(Global.buffer, Global.bufElement);
 
