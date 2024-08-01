@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- https://stackoverflow.com/questions/23075748/how-to-compile-typescript-code-in-the-browser -->
+    <script src="https://unpkg.com/typescript@latest/lib/typescript.js"></script>
+
     <title>Editor</title>
 </head>
 <body>
+    <div id="editor-buffer">
+        <div id="editor-cursor"></div>
+    </div>
 </body>
 </html>

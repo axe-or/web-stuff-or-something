@@ -1,8 +1,8 @@
-'use strict';
+namespace ed {
 
 const P = (x) => { console.log(`>> ${x}`); return x; }
 
-function assert(pred){
+function assert(pred: boolean){
 	if(!pred){
 		throw new Error("Assertion failure");
 	}
@@ -30,22 +30,21 @@ function initHTMLCursor(cursor){
 	return cursor;
 }
 
-function utfEncode(buf, str){
-	const encoder = utfEncode.encoder ??
-		(utfEncode.encoder = new TextEncoder());
-	encoder.encodeInto(str, buf);
-}
+// function utfEncode(buf: Uint8Array, str: string){
+// 	const encoder = utfEncode.encoder ??
+// 		(utfEncode.encoder = new TextEncoder());
+// 	encoder.encodeInto(str, buf);
+// }
+
+type Cursor = {line: number, col: number};
 
 class Buffer {
 	lines: Array<string> = [];
-	cursor = {
-		line: 0,
-		col: 0,
-	};
+	cursor: Cursor = { line: 0, col: 0 };
 	
 	constructor(){}
 
-	moveCursor(dx, dy){
+	moveCursor(dx: number, dy: number){
 		let l = this.cursor.line;
 		const c = this.cursor.col;
 		this.cursor.line = clamp(0, l + dy, this.lines.length - 1);
@@ -53,13 +52,13 @@ class Buffer {
 		this.cursor.col = clamp(0, c + dx, this.lines[l].length);
 	}
 	
-	underCursor(cursor = null){
+	underCursor(cursor: Cursor|null = null): string{
 		const cur = cursor ?? this.cursor;
 		return this.lines[cur.line][cur.col];
 	}
 
-	checkCursor(){
-		const lineSize = this.lines[this.cursor.line] ?? -1;
+	checkCursor(): boolean {
+		const lineSize = this.lines[this.cursor.line].length ?? -1;
 		return this.cursor.col < lineSize;
 	}
 	
@@ -70,22 +69,22 @@ class Buffer {
 		
 		let postCur = line.substring(cur.col, line.length);
 		
-		this.lines.splice(cur.line+1, 0, postCur)
+		this.lines.splice(cur.line + 1, 0, postCur)
 		
 		this.lines[cur.line] = this.lines[cur.line].substring(0, cur.col);
 	}
 	
 	insertText(text){
 		// TODO: Ensure text doesn't have \n
-		if(this.lines.length <= 0){ lines.push(''); }
+		if(this.lines.length <= 0){ this.lines.push(''); }
 		this._insertIntoLine(text);
 	}
 	
-	deleteLine(idx){
+	deleteLine(idx: number){
 		this.lines.splice(idx, 1);
 	}
 	
-	_insertIntoLine(text){
+	_insertIntoLine(text: string){
 		const cur = this.cursor;
 		const line = this.lines[cur.line];
 		const head = line.substring(0, cur.col);
@@ -110,10 +109,10 @@ function updateLines(buffer, root){
 		el.className = 'editor-line';
 		el.style.whiteSpace = 'pre';
 		el.style.width = 'fit-content';
-		el.style.height = Global.FontHeight * 2;
+		el.style.height = (Global.FontHeight * 2).toString();
 	
-		el.style.padding = 0;
-		el.style.margin = 0;
+		el.style.padding = '0';
+		el.style.margin = '0';
 		//el.style.backgroundColor = `hsl(${i * 10 + 120},100%,30%)`;
 		
 		el.textContent = buffer.lines[i].replaceAll('\t', ' ');
@@ -176,11 +175,11 @@ function initInputHandling(ele){
 
 function getFontWidth(height){
 	const tmp = document.createElement('div');
-	const body = document.querySelector('body');
+	const body = document.querySelector('body') as HTMLElement;
 	tmp.textContent = 'X';
 	tmp.style.width = 'fit-content';
-	tmp.style.padding = 0;
-	tmp.style.margin = 0;
+	tmp.style.padding = '0';
+	tmp.style.margin = '0';
 	tmp.style.fontSize = height;
 	body.appendChild(tmp);
 	const W = window.getComputedStyle(tmp, null).width;
@@ -199,7 +198,7 @@ let Global = {
 
 /* ---- Main ---- */
 document.querySelector('body').style.fontSize = Global.FontHeight + 'px';
-Global.FontWidth = getFontWidth(Global.fontHeight);
+Global.FontWidth = getFontWidth(Global.FontHeight);
 Global.buffer.lines.push("");
 
 // Global.buffer.lines.push("**************************************************");
@@ -215,3 +214,4 @@ initHTMLCursor(Global.cursorElement);
 updateHTMLCursor(Global.buffer, Global.cursorElement);
 
 initInputHandling(document.querySelector('body'));
+}

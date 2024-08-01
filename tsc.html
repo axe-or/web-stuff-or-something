@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="https://unpkg.com/typescript@latest/lib/typescript.js"></script>
+    <title>Document</title>
+</head>
+<body>
+    <h1>Typescript Compiler</h1>
+    <textarea title="-" name="TS Code" id="ts-code" cols="30" rows="10"></textarea>
+    <button id="compile-button">Compile</button>
+
+    <script defer>
+        const button = document.querySelector('#compile-button');
+        const source = document.querySelector('#ts-code');
+
+        button.addEventListener('click', () => {
+            const v = source.value.toString();
+            console.log(window.ts.transpile(v));
+        })
+    </script>
+</body>
+</html>
