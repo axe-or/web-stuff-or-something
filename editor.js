@@ -199,6 +199,8 @@ function initInputHandling(ele){
 
 			case 'Shift':
 			case 'Control': break;
+			
+			case 'Dead': break;
 
 			case 'Tab':
 				Global.buffer.insertText('    ');
@@ -214,7 +216,6 @@ function initInputHandling(ele){
 				Global.buffer.insertText(ev.key);
 				Global.buffer.moveCursor(+1, 0);
 				dirty = true;
-
 			break;
 		}
 		updateHTMLCursor(Global.buffer, Global.cursorElement);
