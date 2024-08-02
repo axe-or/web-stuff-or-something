@@ -303,11 +303,12 @@ function processInput(){
 		case 'Home': Global.buffer.moveCursor(-10000000, 0); break;
 	
 		case 'Backspace': break;
+		
 		default:
 			Global.buffer.insertText(key);
 			Global.buffer.moveCursor(+1, 0);
 		break;
-	}
+		}
 	}
 	updateHTMLCursor(Global.buffer, Global.cursorElement);
 	updateLines(Global.buffer, Global.bufElement);
