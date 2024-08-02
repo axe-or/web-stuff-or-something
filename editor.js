@@ -1,5 +1,14 @@
 const P = (x) => { console.log(`>> ${x}`); return x; }
 
+function wait(ms) {
+  return new Promise((resolve, _) => {
+    setTimeout(() => {
+      resolve()
+    }, ms )
+  })
+}  
+
+
 /** Ensure a predicate is true
  * @param {boolean} pred
  */
@@ -179,52 +188,38 @@ function updateHTMLCursor(buf, cur){
 	cur.style.top = top;
 }
 
-function initInputHandling(ele){
-	ele.addEventListener('keydown', (ev) => {
-		if(ev.isPreventedDefault){ return; } // Avoid running event twice.
-
-		let dirty = false;
-
-		switch(ev.key){
-			case 'ArrowUp':    Global.buffer.moveCursor(0, -1); break;
-			case 'ArrowDown':  Global.buffer.moveCursor(0, +1); break;
-			case 'ArrowLeft':  Global.buffer.moveCursor(-1, 0); break;
-			case 'ArrowRight': Global.buffer.moveCursor(+1, 0); break;
-
-			case 'Enter':
-				Global.buffer.splitLine();
-				Global.buffer.moveCursor(0, +1);
-				dirty = true;
-			break;
-
-			case 'Shift':
-			case 'Control': break;
-			
-			case 'Dead': break;
-
-			case 'Tab':
-				Global.buffer.insertText('    ');
-				Global.buffer.moveCursor(+4, 0);
-				dirty = true;
-			break;
-
-			case 'End': Global.buffer.moveCursor(+10000000, 0); break;
-			case 'Home': Global.buffer.moveCursor(-10000000, 0); break;
-
-			case 'Backspace': break;
-			default:
-				Global.buffer.insertText(ev.key);
-				Global.buffer.moveCursor(+1, 0);
-				dirty = true;
-			break;
+/** Queue (FIFO) data structure
+ * @class
+ * @property {Object[]} items
+ */
+ class Queue {
+	items = [];
+	
+	push(x){
+		this.items.push(x);
+	}
+	
+	pop(){
+		if(this.items.length < 1){
+			throw new Error("Empty queue");
 		}
-		updateHTMLCursor(Global.buffer, Global.cursorElement);
+		return this.items.shift();
+	}
+	
+	empty(){
+		return this.items.length < 1;
+	}
+	
+	clear(){
+		this.items = [];
+	}
+	
+	get length(){
+		return this.items.length;
+	}
+ }
 
-		if(dirty) { updateLines(Global.buffer, Global.bufElement); }
 
-		ev.preventDefault();
-	}, true); // Send events directly to listener
-}
 
 /** Get font width, in CSS pixels, given a font height.
  * @param {number} height
@@ -264,3 +259,60 @@ initHTMLCursor(Global.cursorElement);
 updateHTMLCursor(Global.buffer, Global.cursorElement);
 
 initInputHandling(document.querySelector('body'));
+
+
+
+let inputQueue = new Queue();
+
+function initInputHandling(ele){
+	ele.addEventListener('keydown', (ev) => {
+		if(ev.isPreventedDefault){ return; } // Avoid running event twice.
+
+		inputQueue.push(ev.key);
+		
+
+		ev.preventDefault();
+	}, true); // Send events directly to listener
+}
+
+function processInput(){
+	while(!inputQueue.empty()){
+		const key = inputQueue.pop();
+		switch(key){
+		case 'ArrowUp':    Global.buffer.moveCursor(0, -1); break;
+		case 'ArrowDown':  Global.buffer.moveCursor(0, +1); break;
+		case 'ArrowLeft':  Global.buffer.moveCursor(-1, 0); break;
+		case 'ArrowRight': Global.buffer.moveCursor(+1, 0); break;
+	
+		case 'Enter':
+			Global.buffer.splitLine();
+			Global.buffer.moveCursor(0, +1);
+		break;
+	
+		case 'Shift':
+		case 'Control': break;
+		
+		case 'Dead': break;
+	
+		case 'Tab':
+			Global.buffer.insertText('    ');
+			Global.buffer.moveCursor(+4, 0);
+		break;
+	
+		case 'End': Global.buffer.moveCursor(+10000000, 0); break;
+		case 'Home': Global.buffer.moveCursor(-10000000, 0); break;
+	
+		case 'Backspace': break;
+		default:
+			Global.buffer.insertText(key);
+			Global.buffer.moveCursor(+1, 0);
+		break;
+	}
+	}
+	updateHTMLCursor(Global.buffer, Global.cursorElement);
+	updateLines(Global.buffer, Global.bufElement);
+}
+
+const intervalId = setInterval(
+	processInput, 12
+);
