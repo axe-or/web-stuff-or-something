@@ -23,9 +23,6 @@ const min = (a, b) => a < b ? a : b;
 const max = (a, b) => a > b ? a : b;
 const clamp = (lo, x, hi) => min(max(lo, x), hi);
 
-function delFromLine(which, idx){
-}
-
 /** Initialize HTML cursor element
  * @param {Element} cursor
  */
@@ -39,7 +36,6 @@ function initHTMLCursor(cursor){
 	cursor.style.zIndex = -2;
 	return cursor;
 }
-
 
 /** Location into a text buffer
  * @class
@@ -63,7 +59,11 @@ class Buffer {
 	cursor = new Cursor();
 
 	constructor(){}
-
+	
+	/** Move cursor by dx columns and dy lines
+	* @param {number} dx
+	* @param {number} dy
+	*/
 	moveCursor(dx, dy){
 		let l = this.cursor.line;
 		const c = this.cursor.col;
@@ -72,14 +72,13 @@ class Buffer {
 		this.cursor.col = clamp(0, c + dx, this.lines[l].length);
 	}
 
+	/** Get codepoint under cursor
+	* @param {Cursor} [cursor]
+	* @returns {String}
+	*/
 	underCursor(cursor){
 		const cur = cursor ?? this.cursor;
 		return this.lines[cur.line][cur.col];
-	}
-
-	checkCursor() {
-		const lineSize = this.lines[this.cursor.line].length ?? -1;
-		return this.cursor.col < lineSize;
 	}
 
 	/** Split line under cursor, uses this.cursor by default
@@ -96,10 +95,15 @@ class Buffer {
 		this.lines[cur.line] = this.lines[cur.line].substring(0, cur.col);
 	}
 
-	insertText(text){
-		// @todo: Ensure text doesn't have \n
+	/** Insert text into cursor.
+	* @param {string} text
+	* @param {Cursor} [cursor]
+	*/
+	insertText(text, cursor = null){
+		assert(!text.includes('\n'), "Cannot insert text that contains newlines, it must be split first.");
 		if(this.lines.length <= 0){ this.lines.push(''); }
-		this._insertIntoLine(text);
+		const c = cursor ?? this.cursor
+		this._insertIntoLine(text, c);
 	}
 
 	/** Delete a whole line
@@ -110,21 +114,32 @@ class Buffer {
 	}
 
 	/** Inject text in line where cursor is. Does NOT check for newline.
+	 * @private
 	 * @param {String} text
+	 * @param {Cursor} cursor
 	 */
-	_insertIntoLine(text){
-		const cur = this.cursor;
-		const line = this.lines[cur.line];
-		const head = line.substring(0, cur.col);
-		const tail = line.substring(cur.col, line.length);
-		this.lines[cur.line] = head + text + tail;
+	_insertIntoLine(text, cursor){
+		const line = this.lines[cursor.line];
+		const head = line.substring(0, cursor.col);
+		const tail = line.substring(cursor.col, line.length);
+		this.lines[cursor.line] = head + text + tail;
 	}
 
 	get lineCount(){
 		return this.lines.length;
 	}
+	
+/** Get total text length
+ * @returns {number}
+ */
+	textLength(){
+		let acc = 0;
+		for(let line = 0; line < this.lines.length; line += 1){
+			acc += this.lines[line].length;
+		}
+		return acc;
+	}
 };
-
 
 /** Update the HTML buffer view
  * @param {Buffer} buffer
@@ -153,6 +168,10 @@ function updateLines(buffer, root){
 	}
 }
 
+/** Update the cursor HTML view base on buffer
+ * @param {Buffer} buf
+ * @param {Element} cur
+ */
 function updateHTMLCursor(buf, cur){
 	const left = Global.FontWidth * buf.cursor.col;
 	const top =  2.0 * Global.FontHeight * buf.cursor.line;
@@ -206,6 +225,10 @@ function initInputHandling(ele){
 	}, true); // Send events directly to listener
 }
 
+/** Get font width, in CSS pixels, given a font height.
+ * @param {number} height
+ * @return {number}
+ */
 function getFontWidth(height){
 	const tmp = document.createElement('div');
 	const body = document.querySelector('body');
