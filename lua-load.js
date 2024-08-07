@@ -48,8 +48,7 @@ clearButton.addEventListener('click', () => {
 });
 
 function PRELUDE(){
-return `
---- Prelude ---
+return `--- Prelude ---
 -- Essential lua functions, this is auto included by JS
 
 function map(fn, list)
@@ -112,5 +111,45 @@ function append(list, e)
 	assert(type(list) == 'table', 'Type error')
 	list[#list + 1] = e
 end
-	`
+
+function errorf(fmt, ...)
+	error(fmt:format(...))
+end
+
+function printf(fmt, ...)
+	print(fmt:format(...))
+end
+
+function readonly(tbl)
+	local proxy = {}
+	local mt = {
+		__index = tbl,
+		__newindex = function(t, k, v)
+			error('Cannot change readonly table')
+		end,
+	}
+	setmetatable(proxy, mt)
+	return proxy
+end
+
+function enum(tbl)
+	local proxy = {}
+	local mt = {
+		__index = function(t, k)
+			if tbl[k] == nil then
+				errorf('Value %s is not part of enum', k)
+			end
+		end,
+		__newindex = function(t, k, v)
+			error('Enums do not support addition of new values')
+		end,
+		__pairs = function(t)
+			return pairs(tbl)
+		end,
+	}
+	setmetatable(proxy, mt)
+	return proxy
+end
+
+`
 }
