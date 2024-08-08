@@ -52,6 +52,26 @@ return `
 --- Prelude ---
 -- Essential lua functions, this is auto included by JS
 
+function min(a, b)
+	if a < b then
+		return a;
+	else
+		return b;
+	end
+end
+
+function max(a, b)
+	if a > b then
+		return a;
+	else
+		return b;
+	end
+end
+
+function clamp(lo, x, hi)
+	return min(max(lo, x), hi)
+end
+
 function or_else(val, alt)
 	if val == nil then
 		return val
@@ -144,6 +164,9 @@ function readonly(tbl)
 		__newindex = function(t, k, v)
 			error('Cannot change readonly table')
 		end,
+		__pairs = function()
+			return pairs(tbl)
+		end
 	}
 	setmetatable(proxy, mt)
 	return proxy
@@ -170,5 +193,8 @@ function enum(tbl)
 	return proxy
 end
 
-`
-}
+abs = math.abs
+
+unpack = table.unpack
+
+`;}

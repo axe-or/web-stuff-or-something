@@ -24,6 +24,21 @@ local TokenKind = enum {
 	Colon = ':',
 	Semicolon = ';',
 	
+	Plus = '+',
+	Minus = '-',
+	Star = '*',
+	Slash = '/',
+	Modulo = '%',
+	
+	Greater = '>',
+	Less = '<',
+	Greater_Equal = '>=',
+	Less_Equal = '<=',
+	Not_Equal = '!=',
+	Equal_Equal = '==',
+
+	Equal = '=',
+	
 	If = 'if',
 	Else = 'else',
 	For = 'for',
@@ -69,6 +84,8 @@ function Token:__tostring()
 			return sprintf('%s', self.payload)
 		elseif self.kind == TokenKind.String then
 			return sprintf('String(%s)', self.payload)
+		elseif self.kind == TokenKind.Unknown then
+			return sprintf('<Unknown: %s>', self.lexeme)
 		else
 			unimplemented()
 		end
@@ -95,14 +112,6 @@ function Lexer:advance()
 	return self.source:sub(i, i)
 end
 
-function Lexer:peek(n)
-	if self.current + n > #self.source then
-		return nil
-	end
-	local i = self.current + n
-	return self.source:sub(i, i)
-end
-
 function Lexer:advance_matching(char, ...)
 	local cur = self:peek(0)
 	if cur == char then
@@ -118,12 +127,79 @@ function Lexer:advance_matching(char, ...)
 	return nil
 end
 
+function Lexer:peek(n)
+	if self.current + n > #self.source then
+		return nil
+	end
+	local i = self.current + n
+	return self.source:sub(i, i)
+end
+
+-- Tokens that are unambigously one char
+local TOKENS_1 = readonly {
+	['('] = TokenKind.Paren_Open,
+	[')'] = TokenKind.Paren_Close,
+	['['] = TokenKind.Square_Open,
+	[']'] = TokenKind.Square_Close,
+	['{'] = TokenKind.Curly_Open,
+	['}'] = TokenKind.Curly_Close,
+	
+	['.'] = TokenKind.Dot,
+	[','] = TokenKind.Comma,
+	[':'] = TokenKind.Colon,
+	[';'] = TokenKind.Semicolon,
+	
+	['+'] = TokenKind.Plus,
+	['-'] = TokenKind.Minus,
+	['*'] = TokenKind.Star,
+	['/'] = TokenKind.Slash,
+	['%'] = TokenKind.Modulo,
+}
+
+-- Tokens that are unambigously 2 chars or less
+local TOKENS_2 = readonly {
+	['>'] = TokenKind.Greater,
+	['<'] = TokenKind.Less,
+	['>='] = TokenKind.Greater_Equal,
+	['<='] = TokenKind.Less_Equal,
+	['=='] = TokenKind.Equal_Equal,
+	['='] = TokenKind.Equal,
+	['!='] = TokenKind.Not_Equal,
+	['!'] = TokenKind.Unknown, -- Lone ! is not allowed
+}
+
+function Lexer:next()
+	local c = self:advance()
+	if not c then return nil end
+	local kind = TokenKind.Unknown
+	
+	kind = TOKENS_1[c]
+	if kind then
+		return Token:new(kind)
+	end
+	
+	kind = TOKENS_2[c]
+	if kind then
+		c = c .. self:peek(0)
+		local kind2 = TOKENS_2[c]
+		if kind2 then
+			self:advance()
+			return Token:new(kind2)
+		else
+			return Token:new(kind)
+		end
+	end
+	
+	return Token:new()
+end
+
 function main()
-	local lex = Lexer:new('let x = 100;')
+	local lex = Lexer:new('x = 123 <= 8 != 3;')
+	unpack(lex)
 	while true do
-		local c = lex:advance_matching('l', '=', 'e', ' ', 't', 'x')
-		if not c then break end
-		
-		print(c)
+		local tk = lex:next()
+		if not tk then break end
+		print(tk)
 	end
 end
+
