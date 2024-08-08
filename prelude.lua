@@ -1,6 +1,12 @@
 --- Prelude ---
 -- Essential lua functions, this is auto included by JS
 
+function or_else(val, alt)
+	if val == nil then
+		return val
+	end
+end
+
 function map(fn, list)
 	assert(type(list) == 'table', 'Type error')
 	local arr = {}
@@ -70,8 +76,18 @@ function printf(fmt, ...)
 	print(fmt:format(...))
 end
 
+function sprintf(fmt, ...)
+	return fmt:format(...)
+end
+
+function unimplemented(msg)
+	error(sprintf('Unimplemented code %s', msg or ''))
+end
+
 function readonly(tbl)
-	local proxy = {}
+	local proxy = {
+		__readonly = true,
+	}
 	local mt = {
 		__index = tbl,
 		__newindex = function(t, k, v)
@@ -88,6 +104,8 @@ function enum(tbl)
 		__index = function(t, k)
 			if tbl[k] == nil then
 				errorf('Value %s is not part of enum', k)
+			else
+				return tbl[k]
 			end
 		end,
 		__newindex = function(t, k, v)
