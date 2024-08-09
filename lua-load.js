@@ -11,25 +11,13 @@ fengari.load(PRELUDE())();
 console.log('Prelude.lua loaded');
 
 runButton.addEventListener('click', () => {
+	console.clear();
 	runLuaSource();
 });
 
 autorunCheckbox.addEventListener('change', (ev) => {
 	autoRun = autorunCheckbox.checked;
 });
-
-function clearLuaSource(){
-	luaSourceArea.value = '';
-	fengari.load('main = nil')();
-}
-
-function runLuaSource(){
-	const source =
-		`main = nil
-		${luaSourceArea.value}
-		main()`;
-	fengari.load(source)();
-}
 
 luaSourceArea.addEventListener('drop', (ev) => {
 	ev.preventDefault();
@@ -46,6 +34,21 @@ clearButton.addEventListener('click', () => {
 	console.log(luaSourceArea.value)
 	clearLuaSource();
 });
+
+
+function clearLuaSource(){
+	luaSourceArea.value = '';
+	fengari.load('main = nil')();
+}
+
+function runLuaSource(){
+	const source =
+		`main = nil
+		${luaSourceArea.value}
+		main()`;
+	fengari.load(source)();
+}
+
 
 function PRELUDE(){
 return `

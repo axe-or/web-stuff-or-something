@@ -63,11 +63,44 @@ end
 
 local Token = {}
 
-function Token:new(kind, lexeme)
+-- Tokens that are unambigously one char
+local TOKENS_1 = readonly {
+	['('] = TokenKind.Paren_Open,
+	[')'] = TokenKind.Paren_Close,
+	['['] = TokenKind.Square_Open,
+	[']'] = TokenKind.Square_Close,
+	['{'] = TokenKind.Curly_Open,
+	['}'] = TokenKind.Curly_Close,
+	
+	['.'] = TokenKind.Dot,
+	[','] = TokenKind.Comma,
+	[':'] = TokenKind.Colon,
+	[';'] = TokenKind.Semicolon,
+	
+	['+'] = TokenKind.Plus,
+	['-'] = TokenKind.Minus,
+	['*'] = TokenKind.Star,
+	['/'] = TokenKind.Slash,
+	['%'] = TokenKind.Modulo,
+}
+
+-- Tokens that are unambigously 2 chars or less
+local TOKENS_2 = readonly {
+	['>'] = TokenKind.Greater,
+	['<'] = TokenKind.Less,
+	['>='] = TokenKind.Greater_Equal,
+	['<='] = TokenKind.Less_Equal,
+	['=='] = TokenKind.Equal_Equal,
+	['='] = TokenKind.Equal,
+	['!='] = TokenKind.Not_Equal,
+	['!'] = TokenKind.Unknown, -- Lone ! is not allowed
+}
+
+function Token:new(kind, lexeme, payload)
 	local tk = make_prototype(self, {
 		kind    = kind or TokenKind.Unknown,
 		lexeme  = lexeme or '',
-		payload = nil,
+		payload = payload,
 	})
 	return tk
 end
@@ -90,6 +123,31 @@ function Token:__tostring()
 			unimplemented()
 		end
 	end
+end
+
+local ASCII_UPPER   = {utf8.codepoint('AZ', 1, 2)}
+local ASCII_LOWER   = {utf8.codepoint('az', 1, 2)}
+local ASCII_NUMERIC = {utf8.codepoint('09', 1, 2)}
+
+function is_alpha(c)
+	local point = utf8.codepoint(c, 1, 1)
+	local uppercase = point >= ASCII_UPPER[1] and point <= ASCII_UPPER[2]
+	local lowercase = point >= ASCII_LOWER[1] and point <= ASCII_LOWER[2]
+	return uppercase or lowercase
+end
+
+function is_numeric(c)
+	local point = utf8.codepoint(c, 1, 1)
+	return point >= ASCII_NUMERIC[1] and point <= ASCII_NUMERIC[2]
+end
+
+function is_whitespace(c)
+	return c == ' ' or c == '\n' or
+		   c == '\r' or c == '\t'
+end
+
+function is_identifier(c)
+	return c == '_' or is_alpha(c) or is_numeric(c)
 end
 
 local Lexer = {}
@@ -127,6 +185,10 @@ function Lexer:advance_matching(char, ...)
 	return nil
 end
 
+function Lexer:current_lexeme()
+	return self.source:sub(self.previous - 1, self.current - 1)
+end
+
 function Lexer:peek(n)
 	if self.current + n > #self.source then
 		return nil
@@ -135,42 +197,18 @@ function Lexer:peek(n)
 	return self.source:sub(i, i)
 end
 
--- Tokens that are unambigously one char
-local TOKENS_1 = readonly {
-	['('] = TokenKind.Paren_Open,
-	[')'] = TokenKind.Paren_Close,
-	['['] = TokenKind.Square_Open,
-	[']'] = TokenKind.Square_Close,
-	['{'] = TokenKind.Curly_Open,
-	['}'] = TokenKind.Curly_Close,
-	
-	['.'] = TokenKind.Dot,
-	[','] = TokenKind.Comma,
-	[':'] = TokenKind.Colon,
-	[';'] = TokenKind.Semicolon,
-	
-	['+'] = TokenKind.Plus,
-	['-'] = TokenKind.Minus,
-	['*'] = TokenKind.Star,
-	['/'] = TokenKind.Slash,
-	['%'] = TokenKind.Modulo,
-}
-
--- Tokens that are unambigously 2 chars or less
-local TOKENS_2 = readonly {
-	['>'] = TokenKind.Greater,
-	['<'] = TokenKind.Less,
-	['>='] = TokenKind.Greater_Equal,
-	['<='] = TokenKind.Less_Equal,
-	['=='] = TokenKind.Equal_Equal,
-	['='] = TokenKind.Equal,
-	['!='] = TokenKind.Not_Equal,
-	['!'] = TokenKind.Unknown, -- Lone ! is not allowed
-}
+function Lexer:tokenize_number()
+	return Token:new(TokenKind.Number, '', -69)
+end
 
 function Lexer:next()
-	local c = self:advance()
+	local c = 0
+	repeat
+		c = self:advance()
+	until not is_whitespace(c)
+	
 	if not c then return nil end
+	
 	local kind = TokenKind.Unknown
 	
 	kind = TOKENS_1[c]
@@ -190,15 +228,40 @@ function Lexer:next()
 		end
 	end
 	
+	if is_numeric(c) then
+		return self:tokenize_number()
+	end
+	
+	if is_alpha(c) or c == '_' then
+		return self:tokenize_identifier()
+	end
+	
 	return Token:new()
 end
 
+function Lexer:tokenize_identifier()
+	self.previous = self.current
+	
+	while true do
+		local c = self:advance()
+		if not is_identifier(c) then
+			self.current = self.current - 1
+			break
+		end
+	end
+	
+	local lexeme = self:current_lexeme()
+	
+	return Token:new(TokenKind.Identifier, lexeme)
+end
+
 function main()
-	local lex = Lexer:new('x = 123 <= 8 != 3;')
-	unpack(lex)
+	local lex = Lexer:new('a39 = 123 <= - x + _init 8 != 3 +--;   ')
+
 	while true do
 		local tk = lex:next()
 		if not tk then break end
+		
 		print(tk)
 	end
 end
