@@ -8,7 +8,8 @@ let autoRun = autorunCheckbox.checked;
 
 // Init
 fengari.load(PRELUDE())();
-console.log('Prelude.lua loaded');
+const preludeSize = Math.round(10 * PRELUDE().length / 1024) / 10
+console.log(`Prelude.lua loaded [${preludeSize}KiB]`);
 
 runButton.addEventListener('click', () => {
 	console.clear();
@@ -199,5 +200,44 @@ end
 abs = math.abs
 
 unpack = table.unpack
+
+function make_prototype(proto, init)
+	local obj = init or {}
+	setmetatable(obj, proto)
+	proto.__index = proto
+	return obj
+end
+
+local Queue = {}
+
+function Queue:new(list)
+	local q = make_prototype(Queue, {
+		items = list or {},
+	})
+	return q
+end
+
+function Queue:__len()
+	return #self.items
+end
+
+function Queue:__tostring()
+	if #self.items == 0 then return '[]' end
+	local s = '['
+	for _, v in ipairs(self.items) do
+		s = s .. tostring(v) .. ' '
+	end
+	return s:sub(1, #s - 1) .. ']'
+end
+
+function Queue:push(element)
+	table.insert(self.items, 1, element)
+end
+
+function Queue:pop(element)
+	local e = self.items[#self.items]
+	table.remove(self.items, #self.items)
+	return e
+end
 
 `;}

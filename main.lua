@@ -18,18 +18,18 @@ local TokenKind = enum {
 	Square_Close = ']',
 	Curly_Open = '{',
 	Curly_Close = '}',
-	
+
 	Dot = '.',
 	Comma = ',',
 	Colon = ':',
 	Semicolon = ';',
-	
+
 	Plus = '+',
 	Minus = '-',
 	Star = '*',
 	Slash = '/',
 	Modulo = '%',
-	
+
 	Greater = '>',
 	Less = '<',
 	Greater_Equal = '>=',
@@ -38,28 +38,21 @@ local TokenKind = enum {
 	Equal_Equal = '==',
 
 	Equal = '=',
-	
+
 	If = 'if',
 	Else = 'else',
 	For = 'for',
 	Fn = 'fn',
 	Let = 'let',
-	
+
 	Identifier = 1,
 	Number = 2,
 	String = 3,
 	Boolean = 4,
-	
+
 	EOF = -1,
 	Unknown = -2,
 }
-
-function make_prototype(proto, init)
-	local obj = init or {}
-	setmetatable(obj, proto)
-	proto.__index = proto
-	return obj
-end
 
 local Token = {}
 
@@ -71,12 +64,12 @@ local TOKENS_1 = readonly {
 	[']'] = TokenKind.Square_Close,
 	['{'] = TokenKind.Curly_Open,
 	['}'] = TokenKind.Curly_Close,
-	
+
 	['.'] = TokenKind.Dot,
 	[','] = TokenKind.Comma,
 	[':'] = TokenKind.Colon,
 	[';'] = TokenKind.Semicolon,
-	
+
 	['+'] = TokenKind.Plus,
 	['-'] = TokenKind.Minus,
 	['*'] = TokenKind.Star,
@@ -206,16 +199,16 @@ function Lexer:next()
 	repeat
 		c = self:advance()
 	until not is_whitespace(c)
-	
+
 	if not c then return nil end
-	
+
 	local kind = TokenKind.Unknown
-	
+
 	kind = TOKENS_1[c]
 	if kind then
 		return Token:new(kind)
 	end
-	
+
 	kind = TOKENS_2[c]
 	if kind then
 		c = c .. self:peek(0)
@@ -227,21 +220,21 @@ function Lexer:next()
 			return Token:new(kind)
 		end
 	end
-	
+
 	if is_numeric(c) then
 		return self:tokenize_number()
 	end
-	
+
 	if is_alpha(c) or c == '_' then
 		return self:tokenize_identifier()
 	end
-	
+
 	return Token:new()
 end
 
 function Lexer:tokenize_identifier()
 	self.previous = self.current
-	
+
 	while true do
 		local c = self:advance()
 		if not is_identifier(c) then
@@ -249,19 +242,25 @@ function Lexer:tokenize_identifier()
 			break
 		end
 	end
-	
+
 	local lexeme = self:current_lexeme()
-	
+
 	return Token:new(TokenKind.Identifier, lexeme)
 end
 
 function main()
-	local lex = Lexer:new('a39 = 123 <= - x + _init 8 != 3 +--;   ')
+	local lex = Lexer:new('a39 = 123  <= - x + _in.sit 8 != 3 +--;>   ')
+	local arr = Queue:new{1, 3, 9, -4}
+	print(arr)
+	
+	arr:push(9)
+	arr:push(6)
+	print(arr)
 
 	while true do
 		local tk = lex:next()
 		if not tk then break end
-		
+
 		print(tk)
 	end
 end
