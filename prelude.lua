@@ -88,6 +88,10 @@ function append(list, e)
 	list[#list + 1] = e
 end
 
+function assertf(cond, fmt, ...)
+	assert(cond, fmt:format(...))
+end
+
 function errorf(fmt, ...)
 	error(fmt:format(...))
 end
@@ -142,6 +146,10 @@ function enum(tbl)
 	return proxy
 end
 
+function boolean(x)
+	return not not x
+end
+
 abs = math.abs
 
 unpack = table.unpack
@@ -185,4 +193,35 @@ function Queue:pop(element)
 	return e
 end
 
+Stack = {}
+
+function Stack:new(list)
+	local q = make_prototype(Stack, {
+		items = list or {},
+	})
+	return q
+end
+
+function Stack:__len()
+	return #self.items
+end
+
+function Stack:__tostring()
+	if #self.items == 0 then return '[]' end
+	local s = '['
+	for _, v in ipairs(self.items) do
+		s = s .. tostring(v) .. ' '
+	end
+	return s:sub(1, #s - 1) .. ']'
+end
+
+function Stack:push(element)
+	self.items[#self.items+1] = element
+end
+
+function Stack:pop(element)
+	local e = self.items[#self.items]
+	table.remove(self.items, #self.items)
+	return e
+end
 
