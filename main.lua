@@ -46,9 +46,10 @@ local TokenKind = enum {
 	Let = 'let',
 
 	Identifier = 1,
-	Number = 2,
-	String = 3,
-	Boolean = 4,
+	Integer = 2,
+	Real = 3,
+	String = 4,
+	Boolean = 5,
 
 	EOF = -1,
 	Unknown = -2,
@@ -104,7 +105,7 @@ function Token:__tostring()
 	else
 		if self.kind == TokenKind.Identifier then
 			return sprintf('Id(%s)', self.lexeme)
-		elseif self.kind == TokenKind.Number then
+		elseif self.kind == TokenKind.Integer or self.kind == TokenKind.Real then
 			return sprintf('Num(%s)', self.payload)
 		elseif self.kind == TokenKind.Boolean then
 			return sprintf('%s', self.payload)
@@ -143,6 +144,21 @@ function is_identifier(c)
 	return c == '_' or is_alpha(c) or is_numeric(c)
 end
 
+function is_binary(c)
+	local x = c:find('[01]')
+	return boolean(x)
+end
+
+function is_hexadecimal(c)
+	local x = c:find('[0-9a-fA-F]')
+	return boolean(x)
+end
+
+function is_octal(c)
+	local x = c:find('[0-7]')
+	return boolean(x)
+end
+
 local Lexer = {}
 
 function Lexer:new(src)
@@ -179,7 +195,7 @@ function Lexer:advance_matching(char, ...)
 end
 
 function Lexer:current_lexeme()
-	return self.source:sub(self.previous - 1, self.current - 1)
+	return self.source:sub(self.previous, self.current - 1)
 end
 
 function Lexer:peek(n)
@@ -190,7 +206,63 @@ function Lexer:peek(n)
 	return self.source:sub(i, i)
 end
 
+function Lexer:tokenize_non_decimal(base)
+	local digits = ''
+	
+	local digit_fn = 0
+	if base == 2 then
+		digit_fn = is_binary
+	elseif base == 8 then
+		digit_fn = is_octal
+	elseif base == 16 then
+		digit_fn = is_hexadecimal
+	else
+		errorf('Unknown base: %d', base)
+	end
+
+	print('BASE', base)
+	while true do
+		local c = self:advance()
+
+		if c == '_' then
+			-- Ignore
+		elseif digit_fn(c) then
+			digits = digits .. c
+		elseif not is_whitespace(c) then
+			errorf('Digit "%s" cannot appear in a base-%d number.', c, base)
+		else
+			self.current = self.current - 1
+			break
+		end
+	end
+	
+	-- TODO: Handle overflows
+	local num = tonumber(digits, base)
+	local tk = Token:new(TokenKind.Integer, self:current_lexeme(), num)
+	return tk
+end
+
 function Lexer:tokenize_number()
+	self.previous = self.current
+	local BASES = {
+		['0b'] = 2,
+		['0o'] = 8,
+		['0x'] = 16,
+	}
+	
+	local first = self:peek(0)
+	local second = self:peek(1)
+
+	if is_alpha(second) then
+		self.current = self.current + 2 -- Discard prefix
+		local prefix = first .. second
+		local base = BASES[prefix]
+		assertf(base, 'Invalid base: %s', prefix)
+		return self:tokenize_non_decimal(base)
+	else
+		unimplemented()
+	end
+
 	return Token:new(TokenKind.Number, '', -69)
 end
 
@@ -222,10 +294,12 @@ function Lexer:next()
 	end
 
 	if is_numeric(c) then
+		self.current = self.current - 1
 		return self:tokenize_number()
 	end
 
 	if is_alpha(c) or c == '_' then
+		self.current = self.current - 1
 		return self:tokenize_identifier()
 	end
 
@@ -249,14 +323,9 @@ function Lexer:tokenize_identifier()
 end
 
 function main()
-	local lex = Lexer:new('a39 = 123  <= - x + _in.sit 8 != 3 +--;>   ')
-	local arr = Queue:new{1, 3, 9, -4}
-	print(arr)
-	
-	arr:push(9)
-	arr:push(6)
-	print(arr)
-
+	local lex = Lexer:new('a39 = 0o77 91  <= - x + _in.sit 8 != 3 +--;>   ')
+	print(is_hexadecimal('F'))
+	print(tonumber('1e+21') / 23452)
 	while true do
 		local tk = lex:next()
 		if not tk then break end
