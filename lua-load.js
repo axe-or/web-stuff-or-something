@@ -280,6 +280,32 @@ function Stack:pop(element)
 	return e
 end
 
+function string.bytes_iter(s)
+	local i = 0
+	local n = #s
 
+	return function()
+		i = i + 1
+		if i > n then
+			return nil
+		end
+		return s:byte(i)
+	end
+end
+
+function fnv32a(data, basis)
+	assert(type(data) == 'string')
+	local FNV32_OFFSET_BASIS = 0x811c9dc5
+	local FNV32_PRIME = 0x01000193
+	
+	local hash = basis or FNV32_OFFSET_BASIS
+	
+	for b in data:bytes_iter() do
+		hash = hash * FNV32_PRIME
+		hash = hash ~ b
+	end
+	
+	return hash
+end
 
 `;}
