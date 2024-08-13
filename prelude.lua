@@ -54,7 +54,7 @@ function reduce(fn, list, init)
 		res = fn(res, v)
 	end
 	return res
-end 
+end
 
 function head(n, list)
 	assert(type(n) == 'number', 'Type error')
@@ -242,13 +242,51 @@ function fnv32a(data, basis)
 	assert(type(data) == 'string')
 	local FNV32_OFFSET_BASIS = 0x811c9dc5
 	local FNV32_PRIME = 0x01000193
-	
+
 	local hash = basis or FNV32_OFFSET_BASIS
-	
+
 	for b in data:bytes_iter() do
 		hash = hash * FNV32_PRIME
 		hash = hash ~ b
 	end
-	
+
 	return hash
+end
+
+local Test = {}
+
+function Test:new(title)
+	local t = make_prototype(Test, {
+		failed = 0,
+		total = 0,
+		title = title,
+	})
+	return t
+end
+
+function Test:expect(pred, msg)
+	self.total = self.total + 1
+	msg = msg or 'Failed expect()'
+	if not pred then
+		local info = debug.getinfo(1, 'Sl')
+		printf('[Fail %s %s:%d] %s',
+			self.title, info.source, info.currentline, msg)
+		self.failed = self.failed + 1
+	end
+	return boolean(pred)
+end
+
+function Test:report()
+	printf('[%s] %s ok in %d/%d',
+		self.title,
+		self.failed == 0 and 'PASS' or 'FAIL',
+		self.total - self.failed,
+		self.total)
+end
+
+function test(title, fn)
+	local t = Test:new(title)
+	fn(t)
+	t:report()
+	return t.failed == 0
 end

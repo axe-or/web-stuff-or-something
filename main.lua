@@ -119,8 +119,8 @@ function Token:__tostring()
 	end
 end
 
-local ASCII_UPPER   = {utf8.codepoint('AZ', 1, 2)}
-local ASCII_LOWER   = {utf8.codepoint('az', 1, 2)}
+local ASCII_UPPER = {utf8.codepoint('AZ', 1, 2)}
+local ASCII_LOWER = {utf8.codepoint('az', 1, 2)}
 
 function is_alpha(c)
 	local point = utf8.codepoint(c, 1, 1)
@@ -354,11 +354,18 @@ function Lexer:tokenize_identifier()
 	return Token:new(TokenKind.Identifier, lexeme)
 end
 
+
 function main()
-	local SRC = 'a39 = 0x771  <= - x + _in.sit 0.1 != 3 +--;>   '
+	local SRC = 'a_3_9 = 0x771  <= - x + _in.sit 0.1 != 0.3 +--;>   '
 	
 	local lex = Lexer:new(SRC)
 
+	test('pipi', function(T)
+		T:expect(100 + 1 == 101)
+		T:expect(100 + 1 == 101)
+		T:expect(100 + 1 == 101)
+	end)
+	
 	while true do
 		local tk = lex:next()
 		if not tk then break end
