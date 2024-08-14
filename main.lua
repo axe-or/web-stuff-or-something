@@ -413,6 +413,12 @@ function Parser:new(lex)
 	return p
 end
 
+
+
+local fmt_tokens = function (toks)
+	return table.concat(map(tostring, toks), ' ')
+end
+
 function main()
 	local SRC = [[
 		let x = + 100.3;
@@ -423,13 +429,17 @@ function main()
 	local lex = Lexer:new(SRC)
 	local parser = Parser:new(lex)
 
-	local tokens = ''
+	local tokens = {}
 	while true do
 		local tk = lex:next()
 		if not tk then break end
+		append(tokens, tk)
 		print(tk)
-		tokens = tokens .. tostring(tk) .. ' '
 	end
-	print(tokens)
+	print(fmt_tokens(tokens))
 end
 
+test('Lexer', function(t)
+
+	t:expect(1+1==2)
+end)
