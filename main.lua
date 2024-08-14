@@ -38,12 +38,26 @@ local TokenKind = enum {
 	Equal_Equal = '==',
 
 	Equal = '=',
+	Arrow = '->',
 
 	If = 'if',
 	Else = 'else',
 	For = 'for',
 	Fn = 'fn',
+	In = 'in',
 	Let = 'let',
+	Match = 'match',
+	Return = 'return',
+	Break = 'break',
+	Continue = 'continue',
+	
+	And = '&',
+	Or = '|',
+	Xor = '~',
+	
+	Logic_And = '&&',
+	Logic_Or = '||',
+	Logic_Not = '!',
 
 	Identifier = 1,
 	Integer = 2,
@@ -53,6 +67,19 @@ local TokenKind = enum {
 
 	EOF = -1,
 	Unknown = -2,
+}
+
+local KEYWORDS = {
+	['if'] = TokenKind.If,
+	['else'] = TokenKind.Else,
+	['for'] = TokenKind.For,
+	['fn'] = TokenKind.Fn,
+	['let'] = TokenKind.Let,
+	['match'] = TokenKind.Match,
+	['in'] = TokenKind.In,
+	['return'] = TokenKind.Return,
+	['break'] = TokenKind.Break,
+	['continue'] = TokenKind.Continue,
 }
 
 local Token = {}
@@ -72,7 +99,6 @@ local TOKENS_1 = readonly {
 	[';'] = TokenKind.Semicolon,
 
 	['+'] = TokenKind.Plus,
-	['-'] = TokenKind.Minus,
 	['*'] = TokenKind.Star,
 	['/'] = TokenKind.Slash,
 	['%'] = TokenKind.Modulo,
@@ -80,14 +106,24 @@ local TOKENS_1 = readonly {
 
 -- Tokens that are unambigously 2 chars or less
 local TOKENS_2 = readonly {
+	['-'] = TokenKind.Minus,
+	['->'] = TokenKind.Arrow,
 	['>'] = TokenKind.Greater,
 	['<'] = TokenKind.Less,
 	['>='] = TokenKind.Greater_Equal,
 	['<='] = TokenKind.Less_Equal,
 	['=='] = TokenKind.Equal_Equal,
 	['='] = TokenKind.Equal,
+
+	['!'] = TokenKind.Logic_Not,
 	['!='] = TokenKind.Not_Equal,
-	['!'] = TokenKind.Unknown, -- Lone ! is not allowed
+	
+	['&'] = TokenKind.And,
+	['|'] = TokenKind.Or,
+	['~'] = TokenKind.Xor,
+	
+	['&&'] = TokenKind.Logic_And,
+	['||'] = TokenKind.Logic_Or,
 }
 
 function Token:new(kind, lexeme, payload)
@@ -105,8 +141,10 @@ function Token:__tostring()
 	else
 		if self.kind == TokenKind.Identifier then
 			return sprintf('Id(%s)', self.lexeme)
-		elseif self.kind == TokenKind.Integer or self.kind == TokenKind.Real then
-			return sprintf('Num("%s", %s)', self.lexeme, self.payload)
+		elseif self.kind == TokenKind.Integer then
+			return sprintf('Int(%s)', self.payload)
+		elseif self.kind == TokenKind.Real then
+			return sprintf('Real(%s)', self.payload)
 		elseif self.kind == TokenKind.Boolean then
 			return sprintf('%s', self.payload)
 		elseif self.kind == TokenKind.String then
@@ -207,7 +245,7 @@ end
 
 function Lexer:tokenize_non_decimal(base)
 	local digits = ''
-	
+
 	local digit_fn = 0
 	if base == 2 then
 		digit_fn = is_binary
@@ -221,6 +259,7 @@ function Lexer:tokenize_non_decimal(base)
 
 	while true do
 		local c = self:advance()
+		if not c then break end
 
 		if c == '_' then
 			-- Ignore
@@ -233,7 +272,7 @@ function Lexer:tokenize_non_decimal(base)
 			break
 		end
 	end
-	
+
 	-- TODO: Handle overflows
 	local num = tonumber(digits, base)
 	local tk = Token:new(TokenKind.Integer, self:current_lexeme(), num)
@@ -244,14 +283,20 @@ function Lexer:tokenize_decimal()
 	local digits = ''
 	local is_float = false
 	local has_exponent = false
-	
+
 	while true do
 		local c = self:advance()
+		if not c then break end
 		if c == '_' then
 			-- Ignore
 		elseif c == '.' and not is_float then
 			digits = digits .. c
 			is_float = true
+			local d = self:advance()
+			if not (d and is_numeric(d)) then
+				errorf('Expected a digit to follow decimal place')
+			end
+			digits = digits .. d
 		elseif c == 'e' and not has_exponent then
 			has_exponent = true
 			is_float = true
@@ -263,14 +308,14 @@ function Lexer:tokenize_decimal()
 			break
 		end
 	end
-	
+
 	local payload = tonumber(digits)
 	assert(payload, digits)
 	local tk = Token:new(
 		is_float and TokenKind.Real or TokenKind.Integer,
 		self:current_lexeme(),
 		payload)
-	
+
 	return tk
 end
 
@@ -281,7 +326,7 @@ function Lexer:tokenize_number()
 		['0o'] = 8,
 		['0x'] = 16,
 	}
-	
+
 	local first = self:peek(0)
 	local second = self:peek(1)
 
@@ -343,6 +388,8 @@ function Lexer:tokenize_identifier()
 
 	while true do
 		local c = self:advance()
+		if not c then break end
+		
 		if not is_identifier(c) then
 			self.current = self.current - 1
 			break
@@ -350,27 +397,39 @@ function Lexer:tokenize_identifier()
 	end
 
 	local lexeme = self:current_lexeme()
+	local kw = KEYWORDS[lexeme]
 
-	return Token:new(TokenKind.Identifier, lexeme)
+	return Token:new(kw or TokenKind.Identifier, lexeme)
 end
 
+local Parser = {}
+
+function Parser:new(lex)
+	assert(getmetatable(lex) == Lexer, 'Parser requires a lexer')
+	local p = make_prototype(Parser, {
+		current = 1,
+		lexer = lex,
+	})
+	return p
+end
 
 function main()
-	local SRC = 'a_3_9 = 0x771  <= - x + _in.sit 0.1 != 0.3 +--;>   '
-	
-	local lex = Lexer:new(SRC)
+	local SRC = [[
+		let x = + 100.3;
+		for x in range(0, 100) {
+		}
+	]]
 
-	test('pipi', function(T)
-		T:expect(100 + 1 == 101)
-		T:expect(100 + 1 == 101)
-		T:expect(100 + 1 == 101)
-	end)
-	
+	local lex = Lexer:new(SRC)
+	local parser = Parser:new(lex)
+
+	local tokens = ''
 	while true do
 		local tk = lex:next()
 		if not tk then break end
-
 		print(tk)
+		tokens = tokens .. tostring(tk) .. ' '
 	end
+	print(tokens)
 end
 
