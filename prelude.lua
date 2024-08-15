@@ -88,6 +88,20 @@ function append(list, e)
 	list[#list + 1] = e
 end
 
+function find(list, key, eq_func)
+	if not eq_func then
+		eq_func = function(a, b) return a == b end
+	end
+	
+	for i, v in ipairs(list) do
+		if eq_func(v, key) then
+			return i
+		end
+	end
+	
+	return nil
+end
+
 function assertf(cond, fmt, ...)
 	assert(cond, fmt:format(...))
 end

@@ -54,6 +54,8 @@ local TokenKind = enum {
 	And = '&',
 	Or = '|',
 	Xor = '~',
+	Shift_Left = '<<',
+	Shift_Right = '>>',
 	
 	Logic_And = '&&',
 	Logic_Or = '||',
@@ -108,6 +110,7 @@ local TOKENS_1 = readonly {
 local TOKENS_2 = readonly {
 	['-'] = TokenKind.Minus,
 	['->'] = TokenKind.Arrow,
+
 	['>'] = TokenKind.Greater,
 	['<'] = TokenKind.Less,
 	['>='] = TokenKind.Greater_Equal,
@@ -121,6 +124,8 @@ local TOKENS_2 = readonly {
 	['&'] = TokenKind.And,
 	['|'] = TokenKind.Or,
 	['~'] = TokenKind.Xor,
+	['<<'] = TokenKind.Shift_Left,
+	['>>'] = TokenKind.Shift_Right,
 	
 	['&&'] = TokenKind.Logic_And,
 	['||'] = TokenKind.Logic_Or,
@@ -199,10 +204,11 @@ end
 local Lexer = {}
 
 function Lexer:new(src)
+	assert(type(src) == 'string', 'No source for lexer')
 	local lex = make_prototype(Lexer, {
 		current = 1,
 		previous = 1,
-		source = src or '',
+		source = src,
 	})
 	return lex
 end
@@ -360,7 +366,7 @@ function Lexer:next()
 
 	kind = TOKENS_2[c]
 	if kind then
-		c = c .. self:peek(0)
+		c = c .. (self:peek(0) or '')
 		local kind2 = TOKENS_2[c]
 		if kind2 then
 			self:advance()
@@ -380,7 +386,7 @@ function Lexer:next()
 		return self:tokenize_identifier()
 	end
 
-	return Token:new()
+	errorf('Unrecognized character: %s', c)
 end
 
 function Lexer:tokenize_identifier()
@@ -402,44 +408,154 @@ function Lexer:tokenize_identifier()
 	return Token:new(kw or TokenKind.Identifier, lexeme)
 end
 
-local Parser = {}
-
-function Parser:new(lex)
-	assert(getmetatable(lex) == Lexer, 'Parser requires a lexer')
-	local p = make_prototype(Parser, {
-		current = 1,
-		lexer = lex,
-	})
-	return p
-end
-
-
-
-local fmt_tokens = function (toks)
-	return table.concat(map(tostring, toks), ' ')
-end
-
-function main()
-	local SRC = [[
-		let x = + 100.3;
-		for x in range(0, 100) {
-		}
-	]]
-
-	local lex = Lexer:new(SRC)
-	local parser = Parser:new(lex)
-
+function tokenize(src)
+	local lex = Lexer:new(src)
 	local tokens = {}
+	
 	while true do
 		local tk = lex:next()
 		if not tk then break end
 		append(tokens, tk)
-		print(tk)
 	end
-	print(fmt_tokens(tokens))
+	
+	return tokens
 end
 
-test('Lexer', function(t)
+local Expression = {}
 
-	t:expect(1+1==2)
+local ExprKind = enum {
+	Primary = 0,
+	Unary = 1,
+	Binary = 2,
+	Group = 3,
+}
+
+function Expression:new_primary(tk)
+	assert(getmetatable(tk) == Token, 'Primary expression must be built from token')
+	local e = make_prototype(Expression, {
+		kind = ExprKind.Primary,
+		token = tk,
+	})
+	return e
+end
+
+function Expression:new_unary(op, operand)
+	assert(getmetatable(operand) == Expression, 'Expression sides must be expressions')
+	local e = make_prototype(Expression, {
+		kind = ExprKind.Unary,
+		operator = op,
+		operand = operand,
+	})
+	return e
+end
+
+function Expression:new_binary(l, op, r)
+	assert(getmetatable(l) == Expression and getmetatable(r) == Expression, 'Expression sides must be expressions')
+	local e = make_prototype(Expression, {
+		kind = ExprKind.Binary,
+		left = l,
+		right = r,
+		operator = op,
+	})
+	return e
+end
+
+function Expression:new_group(exp)
+	assert(getmetatable(exp) == Expression, 'Subexpr but must be an expression')
+	local e = make_prototype(Expression, {
+		kind = ExprKind.Group,
+		inner = exp,
+	})
+	return e
+end
+
+local Parser = {}
+
+function Parser:new(tokens)
+	assert(tokens, 'Parser requires a list of tokens')
+	local p = make_prototype(Parser, {
+		current = 1,
+		tokens = tokens,
+	})
+	return p
+end
+
+local PREFIX_OPERATORS = {
+	[TokenKind.Plus] = { 1000 },
+}
+
+local INFIX_OPERATORS = {
+	[TokenKind.Plus]  = {500, 501},
+	[TokenKind.Minus] = {500, 501},
+	[TokenKind.Star]  = {700, 701},
+	[TokenKind.Slash] = {700, 701},
+}
+
+local POSTFIX_OPERATORS = {
+}
+
+
+function infix_binding_power(op)
+	local l, r = INFIX_OPERATORS[op]
+	return l, r 
+end
+
+-- function Parser:advance()
+	-- if self:current > #self.tokens then
+		-- return nil
+	-- end
+	-- self.current = self.current + 1
+	-- return self.tokens[self.current - 1]
+-- end
+
+-- function Parser:peek(n)
+	-- if self.current + n > #self.tokens then
+		-- return nil
+	-- end
+	-- local i = self.current + n
+	-- return self.tokens[i]
+-- end
+
+function is_primary_token(tk)
+	return tk.kind == TokenKind.Integer
+		or tk.kind == TokenKind.Real
+end
+
+function Parser:parse_expression2()
+	local left = 0
+	local tk = self:advance()
+	assert(tk, 'expected token')
+	
+	
+end
+
+function main()
+end
+
+
+test('Lexer', function(t)
+	local fmt_tokens = function (toks)
+		return table.concat(map(tostring, toks), ' ')
+	end
+	do
+		local src = '+-*/%&&&|||~.:;,= ==!=>=<=>>><<<'
+		local tokens = tokenize(src)
+		local res = fmt_tokens(tokens)
+		t:expect(res == '+ - * / % && & || | ~ . : ; , = == != >= <= >> > << <')
+	end
+	
+	do
+		local src = '0xff_d0 0o10 0b1_1_11 6.9e-5 1e+3'
+		local tokens =tokenize(src)
+		local res = fmt_tokens(tokens)
+		t:expect(res == sprintf('Int(%d) Int(8) Int(15) Real(0.000069) Real(1000.0)',
+			0xffd0))
+	end
+	
+	do
+		local src = 'let if for x in list else match fn'
+		local tokens =tokenize(src)
+		local res = fmt_tokens(tokens)
+		t:expect(res == 'let if for Id(x) in Id(list) else match fn')
+	end
 end)
