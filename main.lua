@@ -491,6 +491,8 @@ function Expression:__tostring()
 		end
 	elseif self.kind == ExprKind.Unary then
 		return sprintf('(%s %s)', tostring(self.operator), tostring(self.operand))
+	elseif self.kind == ExprKind.Binary then
+		return sprintf('(%s %s %s)', tostring(self.operator), tostring(self.left), tostring(self.right))
 	else
 		error('Invalid expression')
 	end
@@ -559,7 +561,14 @@ end
 function main()
 	local op = Token:new(TokenKind.Minus)
 	local operand = Token:new(TokenKind.Identifier, 'x')
-	local e = Expression:new_unary(op, Expression:new_primary(operand))
+	local un = Expression:new_unary(op, Expression:new_primary(operand))
+	
+	op = Token:new(TokenKind.Slash)
+	local left = Token:new(TokenKind.Integer, 'x', 420)
+	local right = Token:new(TokenKind.Integer, 'x', 69)
+	local bin = Expression:new_binary(Expression:new_primary(left), op, Expression:new_primary(right))
+	
+	local e = Expression:new_binary(un, Token:new(TokenKind.Star), bin)
 	print(e)
 end
 
