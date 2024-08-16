@@ -20,6 +20,7 @@ local TokenKind = enum {
 	Curly_Close = '}',
 
 	Dot = '.',
+	Dot_Dot = '..',
 	Comma = ',',
 	Colon = ':',
 	Semicolon = ';',
@@ -80,6 +81,8 @@ local KEYWORDS = {
 	['return'] = TokenKind.Return,
 	['break'] = TokenKind.Break,
 	['continue'] = TokenKind.Continue,
+	['true'] = TokenKind.Boolean,
+	['false'] = TokenKind.Boolean,
 }
 
 local Token = {}
@@ -93,7 +96,6 @@ local TOKENS_1 = readonly {
 	['{'] = TokenKind.Curly_Open,
 	['}'] = TokenKind.Curly_Close,
 
-	['.'] = TokenKind.Dot,
 	[','] = TokenKind.Comma,
 	[':'] = TokenKind.Colon,
 	[';'] = TokenKind.Semicolon,
@@ -106,6 +108,9 @@ local TOKENS_1 = readonly {
 
 -- Tokens that are unambigously 2 chars or less
 local TOKENS_2 = readonly {
+	['.'] = TokenKind.Dot,
+	['..'] = TokenKind.Dot_Dot,
+
 	['-'] = TokenKind.Minus,
 	['->'] = TokenKind.Arrow,
 
@@ -152,6 +157,8 @@ function Token:__tostring()
 			return sprintf('%s', self.payload)
 		elseif self.kind == TokenKind.String then
 			return sprintf('String(%s)', self.payload)
+		elseif self.kind == TokenKind.Boolean then
+			return sprintf('%s', self.payload)
 		elseif self.kind == TokenKind.Unknown then
 			return sprintf('<Unknown: %s>', self.lexeme)
 		else
@@ -403,7 +410,13 @@ function Lexer:tokenize_identifier()
 	local lexeme = self:current_lexeme()
 	local kw = KEYWORDS[lexeme]
 
-	return Token:new(kw or TokenKind.Identifier, lexeme)
+	local tk = Token:new(kw or TokenKind.Identifier, lexeme)
+	if lexeme == 'true' then
+		tk.payload = true
+	elseif lexeme == 'false' then
+		tk.payload = false
+	end
+	return tk
 end
 
 function tokenize(src)
@@ -439,6 +452,7 @@ end
 
 function Expression:new_unary(op, operand)
 	assert(getmetatable(operand) == Expression, 'Expression sides must be expressions')
+	assert(getmetatable(op) == Token, 'Operator must be a token')
 	local e = make_prototype(Expression, {
 		kind = ExprKind.Unary,
 		operator = op,
@@ -449,6 +463,7 @@ end
 
 function Expression:new_binary(l, op, r)
 	assert(getmetatable(l) == Expression and getmetatable(r) == Expression, 'Expression sides must be expressions')
+	assert(getmetatable(op) == Token, 'Operator must be a token')
 	local e = make_prototype(Expression, {
 		kind = ExprKind.Binary,
 		left = l,
@@ -465,6 +480,20 @@ function Expression:new_group(exp)
 		inner = exp,
 	})
 	return e
+end
+
+function Expression:__tostring()
+	if self.kind == ExprKind.Primary then
+		if self.token.kind == TokenKind.Identifier then
+			return self.token.lexeme
+		else
+			return tostring(self.token.payload)
+		end
+	elseif self.kind == ExprKind.Unary then
+		return sprintf('(%s %s)', tostring(self.operator), tostring(self.operand))
+	else
+		error('Invalid expression')
+	end
 end
 
 local Parser = {}
@@ -516,6 +545,9 @@ end
 function is_primary_token(tk)
 	return tk.kind == TokenKind.Integer
 		or tk.kind == TokenKind.Real
+		or tk.kind == TokenKind.String
+		or tk.kind == TokenKind.Identifier
+		or tk.kind == TokenKind.Boolean
 end
 
 function Parser:parse_expression2()
@@ -524,34 +556,22 @@ function Parser:parse_expression2()
 	assert(tk, 'expected token')
 end
 
-function read1(buf)
-	while #buf > 0 do
-		coroutine.yield(buf:read(1))
-	end
-end
-
 function main()
-	local buf = ByteBuffer:new()
-	print(buf)
-	buf:write('hello')
-	local reader = coroutine.wrap(read1)
-
-	while true do
-		local val = reader(buf)
-		if not val then break end
-	end
+	local op = Token:new(TokenKind.Minus)
+	local operand = Token:new(TokenKind.Identifier, 'x')
+	local e = Expression:new_unary(op, Expression:new_primary(operand))
+	print(e)
 end
-
 
 test('Lexer', function(t)
 	local fmt_tokens = function (toks)
 		return table.concat(map(tostring, toks), ' ')
 	end
 	do
-		local src = '+-*/%&&&|||~.:;,= ==!=>=<=>>><<<'
+		local src = '+-*/%&&&|||~...:;,= ==!=>=<=>>><<<'
 		local tokens = tokenize(src)
 		local res = fmt_tokens(tokens)
-		t:expect(res == '+ - * / % && & || | ~ . : ; , = == != >= <= >> > << <')
+		t:expect(res == '+ - * / % && & || | ~ .. . : ; , = == != >= <= >> > << <')
 	end
 
 	do
@@ -563,9 +583,9 @@ test('Lexer', function(t)
 	end
 
 	do
-		local src = 'let if for x in list else proc'
-		local tokens =tokenize(src)
+		local src = 'let if for x in list else proc true false'
+		local tokens = tokenize(src)
 		local res = fmt_tokens(tokens)
-		t:expect(res == 'let if for Id(x) in Id(list) else proc')
+		t:expect(res == 'let if for Id(x) in Id(list) else proc true false')
 	end
 end)
