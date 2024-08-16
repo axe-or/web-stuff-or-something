@@ -239,6 +239,39 @@ function Stack:pop(element)
 	return e
 end
 
+ByteBuffer = {}
+
+function ByteBuffer:new()
+	local buf = make_prototype(ByteBuffer, {
+		data = '',
+	})
+	return buf
+end
+
+function ByteBuffer:write(data)
+	assert(type(data) == 'string')
+	self.data = self.data .. data
+end
+
+function ByteBuffer:read(n)
+	local res = self.data:sub(1, n)
+	self.data = self.data:sub(n+1, #self.data)
+	return res
+end
+
+function ByteBuffer:__tostring()
+	if #self.data == 0 then return '[]' end
+	local s = '['
+	for b in self.data:bytes_iter() do
+		s = s .. ('%02x '):format(b)
+	end
+	return s:sub(1, #s - 1) .. ']'
+end
+
+function ByteBuffer:__len()
+	return #self.data
+end
+
 function string.bytes_iter(s)
 	local i = 0
 	local n = #s

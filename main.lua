@@ -43,20 +43,19 @@ local TokenKind = enum {
 	If = 'if',
 	Else = 'else',
 	For = 'for',
-	Fn = 'fn',
+	Proc = 'proc',
 	In = 'in',
 	Let = 'let',
-	Match = 'match',
 	Return = 'return',
 	Break = 'break',
 	Continue = 'continue',
-	
+
 	And = '&',
 	Or = '|',
 	Xor = '~',
 	Shift_Left = '<<',
 	Shift_Right = '>>',
-	
+
 	Logic_And = '&&',
 	Logic_Or = '||',
 	Logic_Not = '!',
@@ -75,9 +74,8 @@ local KEYWORDS = {
 	['if'] = TokenKind.If,
 	['else'] = TokenKind.Else,
 	['for'] = TokenKind.For,
-	['fn'] = TokenKind.Fn,
+	['proc'] = TokenKind.Proc,
 	['let'] = TokenKind.Let,
-	['match'] = TokenKind.Match,
 	['in'] = TokenKind.In,
 	['return'] = TokenKind.Return,
 	['break'] = TokenKind.Break,
@@ -120,13 +118,13 @@ local TOKENS_2 = readonly {
 
 	['!'] = TokenKind.Logic_Not,
 	['!='] = TokenKind.Not_Equal,
-	
+
 	['&'] = TokenKind.And,
 	['|'] = TokenKind.Or,
 	['~'] = TokenKind.Xor,
 	['<<'] = TokenKind.Shift_Left,
 	['>>'] = TokenKind.Shift_Right,
-	
+
 	['&&'] = TokenKind.Logic_And,
 	['||'] = TokenKind.Logic_Or,
 }
@@ -395,7 +393,7 @@ function Lexer:tokenize_identifier()
 	while true do
 		local c = self:advance()
 		if not c then break end
-		
+
 		if not is_identifier(c) then
 			self.current = self.current - 1
 			break
@@ -411,13 +409,13 @@ end
 function tokenize(src)
 	local lex = Lexer:new(src)
 	local tokens = {}
-	
+
 	while true do
 		local tk = lex:next()
 		if not tk then break end
 		append(tokens, tk)
 	end
-	
+
 	return tokens
 end
 
@@ -494,27 +492,26 @@ local INFIX_OPERATORS = {
 local POSTFIX_OPERATORS = {
 }
 
-
 function infix_binding_power(op)
 	local l, r = INFIX_OPERATORS[op]
-	return l, r 
+	return l, r
 end
 
--- function Parser:advance()
-	-- if self:current > #self.tokens then
-		-- return nil
-	-- end
-	-- self.current = self.current + 1
-	-- return self.tokens[self.current - 1]
--- end
+function Parser:advance()
+	if self.current > #self.tokens then
+		return nil
+	end
+	self.current = self.current + 1
+	return self.tokens[self.current - 1]
+end
 
--- function Parser:peek(n)
-	-- if self.current + n > #self.tokens then
-		-- return nil
-	-- end
-	-- local i = self.current + n
-	-- return self.tokens[i]
--- end
+function Parser:peek(n)
+	if self.current + n > #self.tokens then
+		return nil
+	end
+	local i = self.current + n
+	return self.tokens[i]
+end
 
 function is_primary_token(tk)
 	return tk.kind == TokenKind.Integer
@@ -525,11 +522,24 @@ function Parser:parse_expression2()
 	local left = 0
 	local tk = self:advance()
 	assert(tk, 'expected token')
-	
-	
+end
+
+function read1(buf)
+	while #buf > 0 do
+		coroutine.yield(buf:read(1))
+	end
 end
 
 function main()
+	local buf = ByteBuffer:new()
+	print(buf)
+	buf:write('hello')
+	local reader = coroutine.wrap(read1)
+
+	while true do
+		local val = reader(buf)
+		if not val then break end
+	end
 end
 
 
@@ -543,19 +553,19 @@ test('Lexer', function(t)
 		local res = fmt_tokens(tokens)
 		t:expect(res == '+ - * / % && & || | ~ . : ; , = == != >= <= >> > << <')
 	end
-	
+
 	do
 		local src = '0xff_d0 0o10 0b1_1_11 6.9e-5 1e+3'
-		local tokens =tokenize(src)
+		local tokens = tokenize(src)
 		local res = fmt_tokens(tokens)
 		t:expect(res == sprintf('Int(%d) Int(8) Int(15) Real(0.000069) Real(1000.0)',
 			0xffd0))
 	end
-	
+
 	do
-		local src = 'let if for x in list else match fn'
+		local src = 'let if for x in list else proc'
 		local tokens =tokenize(src)
 		local res = fmt_tokens(tokens)
-		t:expect(res == 'let if for Id(x) in Id(list) else match fn')
+		t:expect(res == 'let if for Id(x) in Id(list) else proc')
 	end
 end)
