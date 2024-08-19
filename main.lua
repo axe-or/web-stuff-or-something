@@ -71,7 +71,7 @@ local TokenKind = enum {
 	Unknown = -2,
 }
 
-local KEYWORDS = {
+local KEYWORDS = readonly {
 	['if'] = TokenKind.If,
 	['else'] = TokenKind.Else,
 	['for'] = TokenKind.For,
@@ -170,7 +170,7 @@ end
 local ASCII_UPPER = {utf8.codepoint('AZ', 1, 2)}
 local ASCII_LOWER = {utf8.codepoint('az', 1, 2)}
 
-function is_alpha(c)
+local function is_alpha(c)
 	if not c then return false end
 	local point = utf8.codepoint(c, 1, 1)
 	local uppercase = point >= ASCII_UPPER[1] and point <= ASCII_UPPER[2]
@@ -178,33 +178,49 @@ function is_alpha(c)
 	return uppercase or lowercase
 end
 
-function is_numeric(c)
+local function is_numeric(c)
 	local x = c:find('[0-9]')
 	return boolean(x)
 end
 
-function is_whitespace(c)
+local function is_whitespace(c)
 	return c == ' ' or c == '\n' or
 		   c == '\r' or c == '\t'
 end
 
-function is_identifier(c)
+local function is_identifier(c)
 	return c == '_' or is_alpha(c) or is_numeric(c)
 end
 
-function is_binary(c)
+local function is_binary(c)
 	local x = c:find('[01]')
 	return boolean(x)
 end
 
-function is_hexadecimal(c)
+local function is_hexadecimal(c)
 	local x = c:find('[0-9a-fA-F]')
 	return boolean(x)
 end
 
-function is_octal(c)
+local function is_octal(c)
 	local x = c:find('[0-7]')
 	return boolean(x)
+end
+
+local ESC_SEQ = {
+		['n'] = '\n',
+		['t'] = '\t',
+		['r'] = '\r',
+		["'"] = "'",
+		['"'] = '"',
+}
+
+local function escape(c)
+	local e = ESC_SEQ
+	if not e then
+		errof('Unknown escape sequence: \\%s', c)
+	end
+	return e
 end
 
 local Lexer = {}
@@ -277,7 +293,7 @@ function Lexer:tokenize_non_decimal(base)
 			-- Ignore
 		elseif digit_fn(c) then
 			digits = digits .. c
-		elseif not is_whitespace(c) then
+		elseif is_alpha(c) or is_numeric(c) then
 			errorf('Digit "%s" cannot appear in a base-%d number.', c, base)
 		else
 			self.current = self.current - 1
@@ -355,6 +371,35 @@ function Lexer:tokenize_number()
 	return Token:new(TokenKind.Number, '', -69)
 end
 
+function Lexer:tokenize_string()
+	unimplemented()
+end
+
+function Lexer:tokenize_identifier()
+	self.previous = self.current
+
+	while true do
+		local c = self:advance()
+		if not c then break end
+
+		if not is_identifier(c) then
+			self.current = self.current - 1
+			break
+		end
+	end
+
+	local lexeme = self:current_lexeme()
+	local kw = KEYWORDS[lexeme]
+
+	local tk = Token:new(kw or TokenKind.Identifier, lexeme)
+	if lexeme == 'true' then
+		tk.payload = true
+	elseif lexeme == 'false' then
+		tk.payload = false
+	end
+	return tk
+end
+
 function Lexer:next()
 	local c = 0
 	repeat
@@ -395,31 +440,6 @@ function Lexer:next()
 	errorf('Unrecognized character: %s', c)
 end
 
-function Lexer:tokenize_identifier()
-	self.previous = self.current
-
-	while true do
-		local c = self:advance()
-		if not c then break end
-
-		if not is_identifier(c) then
-			self.current = self.current - 1
-			break
-		end
-	end
-
-	local lexeme = self:current_lexeme()
-	local kw = KEYWORDS[lexeme]
-
-	local tk = Token:new(kw or TokenKind.Identifier, lexeme)
-	if lexeme == 'true' then
-		tk.payload = true
-	elseif lexeme == 'false' then
-		tk.payload = false
-	end
-	return tk
-end
-
 function tokenize(src)
 	local lex = Lexer:new(src)
 	local tokens = {}
@@ -439,9 +459,8 @@ local ExprKind = enum {
 	Primary = 0,
 	Unary = 1,
 	Binary = 2,
-	Group = 3,
-	Indexing = 4,
-	Call = 5,
+	Indexing = 3,
+	Call = 4,
 }
 
 function Expression:new_primary(tk)
@@ -476,13 +495,8 @@ function Expression:new_binary(l, op, r)
 	return e
 end
 
-function Expression:new_group(exp)
-	assert(getmetatable(exp) == Expression, 'Subexpr but must be an expression')
-	local e = make_prototype(Expression, {
-		kind = ExprKind.Group,
-		inner = exp,
-	})
-	return e
+function Expression:new_call(called, ...)
+	unimplemented()
 end
 
 function Expression:new_indexing(obj, idx)
@@ -509,11 +523,34 @@ function Expression:__tostring()
 		return sprintf('(%s %s %s)', self.operator, self.left, self.right)
 	elseif self.kind == ExprKind.Indexing then
 		return sprintf('([] %s %s)', self.object, self.index)
+	elseif self.kind == ExprKind.Group then
+		return tostring(self.inner)
 	else
 		error('Invalid expression')
 	end
 end
 
+local Statement = {}
+
+local StmtKind = enum {
+	VarDecl = 1,
+	VarAssign = 2,
+	ExprStatement = 3,
+	Break = 4,
+	Continue = 5,
+	Return = 6,
+}
+
+function Statement:new_decl(id, t, val)
+	unimplemented()
+	local s = make_prototype(Statement, {
+		kind = StmtKind.VarDecl,
+		id = id,
+		parser_type = t,
+		value = val,
+	})
+	return s
+end
 
 local function left_assoc(prec)
 	return {prec, prec+1}
@@ -694,13 +731,60 @@ function Parser:parse_expression2(min_bp)
 	return left
 end
 
-function main()
-	local src = '4 + 23.5 / (-10 - x[i+1])'
-	local tokens = tokenize(src)
+function parse(tokens)
 	local p = Parser:new(tokens)
-	local e = p:parse_expression()
-	print(e)
+	return p:parse_expression()
 end
+
+function main()
+end
+
+test('Parser', function(t)
+	do 
+		local src = 'a + b * c - d / e'
+		local sexpr = '(- (+ a (* b c)) (/ d e))'
+		local expr = parse(tokenize(src))
+		print(expr)
+		t:expect(tostring(expr) == sexpr)
+	end
+	do 
+		local src = '(a ++ b) | (a -- b) & (a ~~ b)'
+		local sexpr = '(| (+ a (+ b)) (& (- a (- b)) (~ a (~ b))))'
+		local expr = parse(tokenize(src))
+		t:expect(tostring(expr) == sexpr)
+	end
+	do 
+		local src = 'a & b & c & d'
+		local src2 = '((a & b) & c) & d'
+		local expr = parse(tokenize(src))
+		local expr2 = parse(tokenize(src2))
+		t:expect(tostring(expr) == tostring(expr2))
+	end
+	do 
+		local src = 'a[3 << 1] > 1 && b / 5 << 1 == 0'
+		local sexpr = '(&& (> ([] a (<< 3 1)) 1) (== (<< (/ b 5) 1) 0))'
+		local expr = parse(tokenize(src))
+		t:expect(tostring(expr) == sexpr)
+	end
+	do
+		local src = 'a || b && c == d + e * f << -g'
+		local sexpr = '(|| a (&& b (== c (+ d (<< (* e f) (- g))))))'
+		local expr = parse(tokenize(src))
+		t:expect(tostring(expr) == sexpr)
+	end
+	do 
+		local src = '((((x))))'
+		local sexpr = 'x'
+		local expr = parse(tokenize(src))
+		t:expect(tostring(expr) == sexpr)
+	end
+	do 
+		local src = '(a + 2)[x << b[2 + x]]'
+		local sexpr = '([] (+ a 2) (<< x ([] b (+ 2 x))))'
+		local expr = parse(tokenize(src))
+		t:expect(tostring(expr) == sexpr)
+	end
+end)
 
 test('Lexer', function(t)
 	local fmt_tokens = function (toks)
@@ -727,4 +811,12 @@ test('Lexer', function(t)
 		local res = fmt_tokens(tokens)
 		t:expect(res == 'let if for Id(x) in Id(list) else proc true false')
 	end
+	
+	do
+		local src = '"hello \\"world\\" \\n'
+		local tokens = tokenize(src)
+		local res = fmt_tokens(tokens)
+		t:expect(res == 'let if for Id(x) in Id(list) else proc true false')
+	end
+	
 end)
