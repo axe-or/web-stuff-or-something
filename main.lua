@@ -514,9 +514,20 @@ function Expression:__tostring()
 	end
 end
 
+
+local function left_assoc(prec)
+	return {prec, prec+1}
+end
+
+local function right_assoc(prec)
+	return {prec+1, prec}
+end
+
 local PREFIX_OPERATORS = {
 	[TokenKind.Plus] = 1000,
 	[TokenKind.Minus] = 1000,
+	[TokenKind.Xor] = 1000,
+	[TokenKind.Logic_Not] = 1000,
 }
 
 local POSTFIX_OPERATORS = {
@@ -524,10 +535,28 @@ local POSTFIX_OPERATORS = {
 }
 
 local INFIX_OPERATORS = {
-	[TokenKind.Plus]  = {500, 501},
-	[TokenKind.Minus] = {500, 501},
-	[TokenKind.Star]  = {700, 701},
-	[TokenKind.Slash] = {700, 701},
+	[TokenKind.Plus] = left_assoc(500),
+	[TokenKind.Minus] = left_assoc(500),
+	[TokenKind.Star] = left_assoc(600),
+	[TokenKind.Slash] = left_assoc(600),
+	
+	[TokenKind.Or] = left_assoc(500),
+	[TokenKind.Xor] = left_assoc(500),
+	[TokenKind.And] = left_assoc(600),
+	[TokenKind.Shift_Left] = left_assoc(600),
+	[TokenKind.Shift_Right] = left_assoc(600),
+	
+	[TokenKind.Equal_Equal] = left_assoc(400),
+	[TokenKind.Not_Equal] = left_assoc(400),
+	[TokenKind.Greater_Equal] = left_assoc(400),
+	[TokenKind.Less_Equal] = left_assoc(400),
+	[TokenKind.Greater] = left_assoc(400),
+	[TokenKind.Less] = left_assoc(400),
+	
+	[TokenKind.Logic_And] = left_assoc(350),
+	[TokenKind.Logic_Or] = left_assoc(300),
+	
+	[TokenKind.Dot_Dot] = left_assoc(200),
 }
 
 local function infix_binding_power(op)
@@ -594,12 +623,18 @@ function is_operator_token(tk)
 		   and tk.kind ~= TokenKind.EOF
 end
 
+function Parser:parse_expression()
+	return self:parse_expression2(0)
+end
+
 function Parser:parse_expression2(min_bp)
 	if not (min_bp) then error('A minimum binding power is required', 2) end
 	local left = false
 	local tk = self:advance()
 	
-	if is_primary_token(tk) then
+	if not tk then
+		error('Expected a token')
+	elseif is_primary_token(tk) then
 		left = Expression:new_primary(tk)
 	elseif tk.kind == TokenKind.Paren_Open then
 		left = self:parse_expression2(0)
@@ -627,7 +662,6 @@ function Parser:parse_expression2(min_bp)
 		end
 		
 		lp, _ = postfix_binding_power(op)
-		--print('POSTFIX', op, lp, rp)
 		if lp then
 			if lp < min_bp then break end
 			self:advance()
@@ -644,7 +678,6 @@ function Parser:parse_expression2(min_bp)
 		end
 		
 		lp, rp = infix_binding_power(op)
-		--print('INFIX', op, lp, rp)
 		if lp and rp then
 			if lp < min_bp then break end
 
@@ -662,10 +695,10 @@ function Parser:parse_expression2(min_bp)
 end
 
 function main()
-	local src = 'x [ 1  - 1] - 1'
+	local src = '4 + 23.5 / (-10 - x[i+1])'
 	local tokens = tokenize(src)
 	local p = Parser:new(tokens)
-	local e = p:parse_expression2(0)
+	local e = p:parse_expression()
 	print(e)
 end
 
