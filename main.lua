@@ -598,6 +598,20 @@ local function postfix_binding_power(op)
 	return l, nil
 end
 
+local function is_primary_token(tk)
+	return tk.kind == TokenKind.Integer
+		or tk.kind == TokenKind.Real
+		or tk.kind == TokenKind.String
+		or tk.kind == TokenKind.Identifier
+		or tk.kind == TokenKind.Boolean
+end
+
+local function is_operator_token(tk)
+	return not is_primary_token(tk)
+		   and tk.kind ~= TokenKind.Unknown
+		   and tk.kind ~= TokenKind.EOF
+end
+
 local Parser = {}
 
 function Parser:new(tokens)
@@ -633,26 +647,13 @@ function Parser:peek(n)
 	return self.tokens[i]
 end
 
-function is_primary_token(tk)
-	return tk.kind == TokenKind.Integer
-		or tk.kind == TokenKind.Real
-		or tk.kind == TokenKind.String
-		or tk.kind == TokenKind.Identifier
-		or tk.kind == TokenKind.Boolean
-end
-
-function is_operator_token(tk)
-	return not is_primary_token(tk)
-		   and tk.kind ~= TokenKind.Unknown
-		   and tk.kind ~= TokenKind.EOF
-end
-
 function Parser:parse_expression()
 	return self:parse_expression2(0)
 end
 
 function Parser:parse_expression2(min_bp)
 	if not (min_bp) then error('A minimum binding power is required', 2) end
+	"a"
 	local left = false
 	local tk = self:advance()
 	
@@ -713,7 +714,7 @@ function Parser:parse_expression2(min_bp)
 		
 		break -- End parsing
 	end
-	
+
 	if not left then error('Left expr is nil') end
 	return left
 end
@@ -807,3 +808,5 @@ test('Lexer', function(t)
 	end
 	
 end)
+
+-- 232, 232, 221
