@@ -17,6 +17,10 @@ body {
 	font-weight: normal;
 }
 
+.footer {
+	text-align: center;
+}
+
 .main-content {
 	display: block;
 	margin-left: auto;
