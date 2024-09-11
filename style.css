@@ -1,0 +1,27 @@
+:root {
+	--background-color: #f4f4f4;
+	--foreground-color: #000000;
+	--anchor-color: #c2ffc2;
+}
+
+body {
+	background: var(--background-color);
+	color: var(--foreground-color);
+}
+
+.main-title {
+	font-weight: normal;
+}
+
+.section-heading {
+	font-weight: normal;
+}
+
+.main-content {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	min-width: 500px;
+	width: 95%;
+	max-width: 1200px;
+}
