@@ -1,23 +1,51 @@
 :root {
-	--background-color: #f4f4f4;
-	--foreground-color: #000000;
-	--anchor-color: #c2ffc2;
+	--background: #f4f4f4;
+	--foreground: #000000;
+	--dimmed-foreground: #6e6e6e;
+	--anchor: #c2ffc2;
+	--h1-size: 2rem;
+	--h2-size: 1.4rem;
+	--text-size: 1rem;
 }
 
 body {
-	background: var(--background-color);
-	color: var(--foreground-color);
+	background-color: var(--background);
+	color: var(--foreground);
+}
+
+.list li {
+	
+}
+
+.list {
+	margin: 0.1rem;
 }
 
 .main-title {
 	font-weight: normal;
+	font-size: var(--h1-size);
 }
 
 .section-heading {
 	font-weight: normal;
+	font-size: var(--h2-size);
+	margin: 0.6rem;
+}
+
+.section-content {
+	padding-left: 0.4rem;
+}
+
+.ruler {
+	border-color: var(--foreground);
+	border-radius: 1px;
+	color: var(--foreground);
+	border-width: 1px;
 }
 
 .footer {
+	width: 100%;
+	color: var(--dimmed-foreground);
 	text-align: center;
 }
 
@@ -26,6 +54,7 @@ body {
 	margin-left: auto;
 	margin-right: auto;
 	min-width: 500px;
-	width: 95%;
+	width: 100%;
 	max-width: 1200px;
+	font-size: var(--text-size);
 }
