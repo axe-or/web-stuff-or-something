@@ -14,26 +14,24 @@ body {
 }
 
 .list li {
-	
-}
-
-.list {
-	margin: 0.1rem;
+	list-style: square;
+	padding-left: 0.5rem;
 }
 
 .main-title {
 	font-weight: normal;
+	margin: 0.5rem 0.2rem 0.5rem 0.2rem;
 	font-size: var(--h1-size);
 }
 
 .section-heading {
 	font-weight: normal;
 	font-size: var(--h2-size);
-	margin: 0.6rem;
+	margin: 0.8rem 0.2rem 0.8rem 0.2rem;
 }
 
 .section-content {
-	padding-left: 0.4rem;
+	padding-left: 0.8rem;
 }
 
 .ruler {
@@ -53,7 +51,7 @@ body {
 	display: block;
 	margin-left: auto;
 	margin-right: auto;
-	min-width: 500px;
+	min-width: 400px;
 	width: 100%;
 	max-width: 1200px;
 	font-size: var(--text-size);
