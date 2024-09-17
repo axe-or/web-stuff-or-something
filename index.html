@@ -4,17 +4,40 @@
 	<link rel="stylesheet" href="style.css">
     <meta charset="UTF-8">
     <meta name="viewport">
-</head>
-<body>
-<main class="main-content">
-<h1 class="main-title">marcs-feh</h1>
+	<script src="alpine.min.js" defer>
 
-<div id="about" class="section-content">
+	</script>
+</head>
+
+<body x-data="{ openSection: 'about' }">
+
+<nav>
+	<div class="navbar-items" class="page-horizontal-fill">
+		<span class="nav-item nav-title">
+			marcs-feh
+		</span>
+		<button @click="openSection = 'articles'" class="nav-item"
+			    :class="(openSection === 'articles') && 'bg-selected fg-selected'">
+			Articles</button>
+
+		<button @click="openSection = 'interests'" class="nav-item"
+			    :class="(openSection === 'interests') && 'bg-selected fg-selected'">
+			Interests</button>
+
+		<button @click="openSection = 'projects'" class="nav-item"
+			    :class="(openSection === 'projects') && 'bg-selected fg-selected'">
+			Projects</button>
+	</div>
+</nav>
+
+<main class="main-content page-horizontal-fill">
+
+<div x-show="openSection === 'about'" class="content-section">
 	I make software and I don't like portfolio websites.
 </div>
 
-<div class="content-section">
-	<h2 class="section-heading">Interests</h2>
+
+<div x-show="openSection === 'interests'" class="content-section">
 	<div class="section-content">
 		<ul class="list">
 			<li>Systems programming</li>
@@ -26,20 +49,7 @@
 	</div>
 </div>
 
-<div class="content-section">
-	<h2 class="section-heading">Tools</h2>
-	<div class="section-content">
-		Things I use daily, I like most of the tools listed here, with some notable exceptions (C++).
-		<ul class="list">
-			<li><b>Languages: </b>Odin, Go, C, Python, C++, POSIX Shell, Java and a bit of C#</li>
-			<li><b>Data Storage: </b>SQLite, PostgreSQL, ValKey(Redis fork) and any hierarchical filesystem</li>
-			<li><b>Other: </b>SSH, Docker/Podman, QEMU, Linux, NetBSD</li>
-		</ul>
-	</div>
-</div>
-
-<div class="content-section">
-	<h2 class="section-heading">Projects</h2>
+<div x-show="openSection === 'projects'" class="content-section">
 	<div class="section-content">
 	Most projects here are hobby projects, this is not to say they are all trivial, but they are full of quirks that I can afford to make when not working on a team.
 	<ul class="list">
@@ -61,8 +71,7 @@
 	</div>
 </div>
 
-<div class="content-section">
-	<h2 class="section-heading">Articles</h2>
+<div x-show="openSection === 'articles'" class="content-section">
 	<div class="section-content">
 		<div class="article-link">
 		&lt;1970-01&gt; - Inflammatory title [<a class="anchor" href="/marcs-feh/articles/name">Read</a>]
@@ -75,7 +84,6 @@
 		</div>
 	</div>
 </div>
-
 </main>
 
 <div class="footer">
@@ -85,4 +93,16 @@
 
 </body>
 </html>
+
+<!-- <div class="content-section"> -->
+	<!-- <h2 class="section-heading">Tools</h2> -->
+	<!-- <div class="section-content"> -->
+		<!-- Things I use daily, I like most of the tools listed here, with some notable exceptions (C++). -->
+		<!-- <ul class="list"> -->
+			<!-- <li><b>Languages: </b>Odin, Go, C, Python, C++, POSIX Shell, Java and a bit of C#</li> -->
+			<!-- <li><b>Data Storage: </b>SQLite, PostgreSQL, ValKey(Redis fork) and any hierarchical filesystem</li> -->
+			<!-- <li><b>Other: </b>SSH, Docker/Podman, QEMU, Linux, NetBSD</li> -->
+		<!-- </ul> -->
+	<!-- </div> -->
+<!-- </div> -->
 
