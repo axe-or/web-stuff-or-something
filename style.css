@@ -64,7 +64,7 @@ nav button {
 }
 
 .nav-title {
-	padding: 0.3rem;
+	padding: 0.4rem;
 }
 
 .navbar-items {
@@ -120,8 +120,8 @@ nav button {
 	margin-right: auto;
 
 	min-width: 400px;
-	width: 100%;
-	max-width: 1200px;
+	width: 95%;
+	max-width: 900px;
 }
 
 
