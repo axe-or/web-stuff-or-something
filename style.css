@@ -1,10 +1,14 @@
-:root {
-	--font-regular: serif;
+@import url('https://fonts.googleapis.com/css2?family=Inria+Sans&display=swap');
 
-	--background: #f4f4f4;
-	--background-nav: #eaeaea;
-	--foreground: #000000;
-	--dimmed-foreground: #6e6e6e;
+:root {
+	--font-regular: "Inria Sans", sans-serif;
+	--font-prose: serif;
+	--font-mono: monospace;
+
+	--fg: #000000;
+	--bg: #f4f4f4;
+	--bg-nav: #eaeaea;
+	--fg-dimmed: #6e6e6e;
 	--anchor: #ef2b7c;
 	--button: #ef2b7c;
 
@@ -15,15 +19,16 @@
 }
 
 body {
-	background-color: var(--background);
-	color: var(--foreground);
+	background-color: var(--bg);
+	color: var(--fg);
 	font-size: var(--text-size);
+	font-family: var(--font-regular);
 	margin: 0;
 }
 
 button {
 	color: var(--button);
-	background-color: var(--background);
+	background-color: var(--bg);
 	font-family: var(--font-regular);
 	font-size: var(--text-size);
 	border-width: 0px;
@@ -35,7 +40,7 @@ h1, h2, h3 {
 }
 
 nav {
-	background-color: var(--background-nav);
+	background-color: var(--bg-nav);
 	border-width: 0 0 2px 0;
 	border-style: solid;
 	font-size: var(--nav-text-size);
@@ -46,7 +51,7 @@ nav {
 }
 
 .fg-selected {
-	color: var(--background);
+	color: var(--bg);
 }
 
 .monospace {
@@ -98,14 +103,14 @@ nav button {
 }
 
 .ruler {
-	border-color: var(--foreground);
+	border-color: var(--fg);
 	border-width: 0 0 1px 0;
-	color: var(--foreground);
+	color: var(--fg);
 }
 
 .footer {
 	width: 100%;
-	color: var(--dimmed-foreground);
+	color: var(--fg-dimmed);
 	text-align: center;
 }
 
