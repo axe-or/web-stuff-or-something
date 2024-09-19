@@ -40,11 +40,10 @@ However, you are not free from responsability, ever, when I use STB libraries fo
 trusting and making myself and my software partially liable for the mistakes that its author Sean Barret may make. I
 trust Sean, and I find the code in his libraries to be of good quality, so I accept this tradeoff, the same cannot be
 said for recursively adding 500 node modules. No human has enough time and mental fortitude to even tell at a glance the
-general quality of all libraries included by usual JS project.
+general quality of all libraries included by the average JS project.
 
-Another security concern is that package repositories are a great target for supply-chain attacks. Again, the quality of
-the code you depend on becomes exponentially harder to protect and verify its quality the more potential sources it
-depends on.
+Another security concern is that package repositories are a great target for supply-chain attacks. Again, the integrity of
+the code you depend on becomes exponentially harder to verify as you add more sources to fetch.
 
 For people who create either open-source or proprietary software, another problem with automating dependency management
 is how easy it becomes to accidentally add (even if indirectly) software with incompatible licenses. For a commercial
@@ -63,7 +62,7 @@ the game of symbol Whack-A-Mole becomes.
 
 Package managers partially solve that, at the expense of making adding dependencies *too easy*, while the convenience is
 undedeniable, the purpose it serves is nefarious, it's a convenient way to create dependency hell. When excessive
-complexity becomes the easy route, it's natural the majority of engineers will gravitate towards it, it's better to
+complexity becomes the easy route, it's natural that the majority of engineers will gravitate towards it, it's better to
 crush the snake's head, and instead of automating the problem, start using less dependencies that are higher quality.
 
 ## Package managers hide the true problem
@@ -80,14 +79,14 @@ The first reason can be explained mainly by poor standard libraries that languag
 software. This can be mitigated by having better libraries and reducing complexity whenever possible, I won't pretend
 like you're always able to make things simple, some problems are inherently complex, however, you should *never* make
 them *more complex*, and most programmers drastically underestimate how much complexity they accidentally add when
-trying to find "just the right abstraction" for the job.
+adding "just one more library" in a project.
 
 The second reason is the most important one, depenencies which are not dependable, when you simply want to run a a URL
-router and you get an entire testing framework, ORM, and `is-odd` because the library author could not contain
-themselves. A good dependency must do its job, do it well, nothing more and nothing less. This is distinct from the
-notion of "code bloat", adding too many dependencies generally causes a software to become bloated, but it's not a
-necessity, espcially in the JavaScript, Python and Rust ecossystems, some dependencies are so extremely tiny they are
-not even worthy of being called code bloat.
+router and you get an entire testing framework, ORM, and `is-odd` because the library author could not contain the urge
+to not write 50 lines of code on his own. A good dependency must do its job, do it well, nothing more and nothing less.
+This is distinct from the notion of "code bloat", adding too many dependencies generally causes a software to become
+bloated, but it's not a necessity, espcially in the JavaScript, Python and Rust ecossystems, some dependencies are so
+extremely tiny they are not even worthy of being called code bloat.
 
 ## SemVer is not enough
 
@@ -132,3 +131,4 @@ Now, things which programmers can do:
   possible, users should generally be able to download a single zip file and have things just work.
   
 - Build your libraries as static archives, avoid dynamic linking as much as you can.
+
