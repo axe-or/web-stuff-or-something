@@ -108,22 +108,27 @@ little setup, and users should require **no** setup.
 The effort to reduce dependency hell is a noble one, but how to go about it? Here are things which language authors and
 compiler designers can do:
 
-1. Do not provide a language package manager.
-
-2. Do not ship "build systems", design the language compiler/interpreter in a way their necessity is maximally reduced.
-
-3. Do not rely on SemVer ranges for package versioning, I'm not saying to *not* use SemVer, but always refer **one**
-   specific version.
-
-4. Make a package **extremely well defined**. And preferrably, make adding dependencies a straightforward but manual
-   process. Ideally, each dependency should just be a folder or zip archive the programmer can use.
+- Make the definition of a package **extremely well defined**. And preferrably, make adding dependencies a
+  straightforward but manual process. Ideally, each dependency should just be a folder or zip archive the programmer
+  can use.
   
- Now, things which programmers can do:
- 
- 1. Rely on a small number of dependencies, think *very well* before adding anything, you might not need it or you might
-    be able to implement the functionality you need anyways without wasting too much time.
- 
- 2. Only choose high-quality dependencies, they don't need to be *famous*, but look for self-contained, well tested
-    libraries. Avoid libraries that have more marketing than code.
+- Do not provide a language package manager.
 
+- Do not ship "build systems", design the language compiler/interpreter in a way their necessity is maximally reduced
+  by having the concept of package/module be a part of the language, not an afterthought.
+  
+- Do not rely on SemVer ranges for package versioning, I'm not saying to *not* use SemVer, but always refer **one**
+  specific version.
 
+Now, things which programmers can do:
+ 
+- Rely on a small number of dependencies, think *very well* before adding anything, you might not need it or you might
+  be able to implement the functionality you need anyways without wasting too much time.
+ 
+- Only choose high-quality dependencies, they don't need to be *famous*, but look for self-contained, well tested
+  libraries. Avoid libraries that have more marketing than code.
+
+- Statically build your binaries, do not try to please "package maintainers". Make your program as self contained as
+  possible, users should generally be able to download a single zip file and have things just work.
+  
+- Build your libraries as static archives, avoid dynamic linking as much as you can.

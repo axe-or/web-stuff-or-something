@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inria+Sans:ital,wght@0,400;1,300&family=Inria+Serif:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap');
+
 :root {
 	--font-regular: serif;
 	--background: #f4f4f4;
@@ -11,6 +13,10 @@
 	--h2-size: 1.4rem;
 	--nav-text-size: 1.2rem;
 	--text-size: 1rem;
+	--font-serif: 'Inria Serif';
+	--font-sans: 'Inria Sans';
+	
+	
 }
 
 body {
@@ -18,6 +24,7 @@ body {
 	color: var(--foreground);
 	font-size: var(--text-size);
 	margin: 0;
+	font-family: var(--font-serif);
 }
 
 button {
@@ -31,6 +38,7 @@ button {
 
 h1, h2, h3 {
 	font-weight: normal;
+	font-family: var(--font-sans);
 }
 
 nav {
