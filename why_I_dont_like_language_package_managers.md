@@ -1,5 +1,8 @@
 # Why I don't like language package managers
 
+I don't like language package managers, or most package managers although I do think programming language ones are
+the most nefarious.
+
 ## Definitions
 
 A *package manager* is a tool that automates the retrieval and installation of *packages* and their *dependencies*. The
@@ -15,9 +18,9 @@ dependencies* which are needed to *build* the artifacts but not run them.
 
 ## The purpose of automation
 
-Automation is taking a process and making it standardized and human-indepedent, the role of automation is crucial in human life as it
-frees time and energy for other more desirable activities, computers themselves are an automation over many sequential
-processes of mathematics and data processing.
+Automation is taking a process and making it standardized and human-indepedent, the role of automation is crucial in
+human life as it frees time and energy for other more desirable activities, computers themselves are an automation over
+many sequential processes of mathematics and data processing.
 
 Not everything however, needs to be automated, there are particular aspects of life where automation is unsuited, the 2
 main cases are when the activity does not suffer from the same disutility that labor has (e.g: Spending time with your loved
@@ -58,7 +61,10 @@ I don't want make to my work harder unless there's a really good reason to, and 
 laborious and boring task, anyone who ever dealt with cascades of linker errors in C or C++ will know how frustrating
 the game of symbol Whack-A-Mole becomes.
 
-<<<<< ADD MORE STUFF >>>>>
+Package managers partially solve that, at the expense of making adding dependencies *too easy*, while the convenience is
+undedeniable, the purpose it serves is nefarious, it's a convenient way to create dependency hell. When excessive
+complexity becomes the easy route, it's natural the majority of engineers will gravitate towards it, it's better to
+crush the snake's head, and instead of automating the problem, start using less dependencies that are higher quality.
 
 ## Package managers hide the true problem
 
@@ -66,6 +72,7 @@ The issue is, package managers are not solving the *true* problem, the problem i
 but *why* do we:
 
 1. Need so many dependencies in the first place?
+
 2. Why are dependencies not self contained? Why do your dependencies (which should be *dependable* and trustworthy)
    also depend on *so much crap*?
 
@@ -75,6 +82,48 @@ like you're always able to make things simple, some problems are inherently comp
 them *more complex*, and most programmers drastically underestimate how much complexity they accidentally add when
 trying to find "just the right abstraction" for the job.
 
+The second reason is the most important one, depenencies which are not dependable, when you simply want to run a a URL
+router and you get an entire testing framework, ORM, and `is-odd` because the library author could not contain
+themselves. A good dependency must do its job, do it well, nothing more and nothing less. This is distinct from the
+notion of "code bloat", adding too many dependencies generally causes a software to become bloated, but it's not a
+necessity, espcially in the JavaScript, Python and Rust ecossystems, some dependencies are so extremely tiny they are
+not even worthy of being called code bloat.
 
 ## SemVer is not enough
+
+SemVer (AKA *Semantic Versioning) is a specification on how version numbers should relate to incompatibilities in an
+API. I do not think SemVer is by itself a bad idea, however, it is overly idealistic, not only verifying complaince with
+SemVer automatically is very difficult, but it does not address the fact that people rely on bugs, and they rely a *lot
+more* on bugs than you might think.
+
+To build actually reliable software, avoid at all costs depending on version ranges of a library, instead *choose a
+particular version and pin it*. Only update when needed, and do it carefully, it is a minor inconvenience to pay for not
+having to worry about `libfoo-v2.3.1` accidentally fixing a bug you relied (accidentally or not) on version `v2.3.2`.
+
+If possible, vendor your dependencies, or add that as an option, developers shoul dbe able to work on your project with
+little setup, and users should require **no** setup.
+
+## What to do instead?
+
+The effort to reduce dependency hell is a noble one, but how to go about it? Here are things which language authors and
+compiler designers can do:
+
+1. Do not provide a language package manager.
+
+2. Do not ship "build systems", design the language compiler/interpreter in a way their necessity is maximally reduced.
+
+3. Do not rely on SemVer ranges for package versioning, I'm not saying to *not* use SemVer, but always refer **one**
+   specific version.
+
+4. Make a package **extremely well defined**. And preferrably, make adding dependencies a straightforward but manual
+   process. Ideally, each dependency should just be a folder or zip archive the programmer can use.
+  
+ Now, things which programmers can do:
+ 
+ 1. Rely on a small number of dependencies, think *very well* before adding anything, you might not need it or you might
+    be able to implement the functionality you need anyways without wasting too much time.
+ 
+ 2. Only choose high-quality dependencies, they don't need to be *famous*, but look for self-contained, well tested
+    libraries. Avoid libraries that have more marketing than code.
+
 
