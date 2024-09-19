@@ -1,0 +1,48 @@
+<html lang="en">
+<head>
+	<title>marcs-feh</title>
+	<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport">
+	
+	<script type="module" defer>
+		// import { marked } from "./marked.esm.js";
+		import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
+		window.marked = marked
+
+		let preview = document.querySelector('#markdown-preview');
+		let mdArea = document.querySelector('#markdown-src');
+		
+		mdArea.addEventListener('drop', (ev) => {
+			ev.preventDefault();
+			const text = ev.dataTransfer.getData('text/plain');
+			mdArea.value = text;
+			const rendered = marked.parse(text);
+			console.log(rendered)
+			preview.innerHTML = `<div id="markdown-preview">
+				${rendered}
+			</div>`
+		});
+		
+		'keydown keyup'.split(' ').forEach((name) =>
+			mdArea.addEventListener(name, (ev) => {
+				const rendered = marked.parse(mdArea.value);
+				console.log(rendered)
+				preview.innerHTML = `<div id="markdown-preview">
+					${rendered}
+				</div>`
+			}));
+
+		
+	</script>
+</head>
+
+<textarea style="resize: vertical" id="markdown-src" spellcheck="false" resizable="false" rows="8" cols="60"></textarea>
+<hr>
+
+<main class="page-horizontal-fill">
+<div id="markdown-preview">
+</div>
+
+<body>
+</body>
