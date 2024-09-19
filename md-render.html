@@ -37,12 +37,24 @@
 	</script>
 </head>
 
-<textarea style="resize: vertical" id="markdown-src" spellcheck="false" resizable="false" rows="8" cols="60"></textarea>
-<hr>
+<body>
+<div class="markdown-top">
+	<textarea style="resize: vertical" id="markdown-src" spellcheck="false" resizable="false" rows="8" cols="60"></textarea>
+</div>
+	<hr>
 
 <main class="page-horizontal-fill">
-<div id="markdown-preview">
-</div>
+	<div id="markdown-preview"></div>
+</main>
 
-<body>
+<style>
+	.markdown-top {
+		display: flex;
+		align-items: center;
+	}
+	
+	#markdown-src {
+		flex: 1;
+	}
+</style>
 </body>
