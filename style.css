@@ -15,8 +15,6 @@
 	--text-size: 1rem;
 	--font-serif: 'Inria Serif';
 	--font-sans: 'Inria Sans';
-	
-	
 }
 
 body {
@@ -25,6 +23,7 @@ body {
 	font-size: var(--text-size);
 	margin: 0;
 	font-family: var(--font-serif);
+	tab-size: 4;
 }
 
 button {
@@ -39,6 +38,12 @@ button {
 h1, h2, h3 {
 	font-weight: normal;
 	font-family: var(--font-sans);
+}
+
+pre code {
+	margin-left: 36px;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
 }
 
 nav {
